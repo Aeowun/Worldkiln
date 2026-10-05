@@ -1,3 +1,7 @@
+<img width="2401" height="1244" alt="actor-transform" src="https://github.com/user-attachments/assets/45c6fe55-d19d-4e68-b195-8fc2bacf4675" />
+<img width="1913" height="1079" alt="actor-navigation-script" src="https://github.com/user-attachments/assets/cfdc7f54-df42-4900-9d75-07cbf8554b1c" />
+<img width="1914" height="1079" alt="worldkiln-home" src="https://github.com/user-attachments/assets/ed277a84-1529-4e7e-bbaa-e402e1ea5e51" />
+<img width="895" height="448" alt="navigation-aeoscript" src="https://github.com/user-attachments/assets/268af317-3bdb-4e53-a0af-fdff643b5022" />
 # Worldkiln
 
 > # **Make a game. Make it yours.**
