@@ -2,7 +2,7 @@
 
 > # **Make a game. Make it yours.**
 >
-> **Worldkiln 0.8.5 is the current public beta.**
+> **Worldkiln 0.8.0 is the current public beta. Version 0.8.5 is the next planned release.**
 
 ![Worldkiln — Make a game. Make it yours.](SCREENSHOTS/Worldkiln_%20Build%20Your%20Fantasy%20Fortress.png)
 
