@@ -605,7 +605,7 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 
 ## Development builds after 0.8.5 — Significant improvements and additions
 
-> The following changes are documented in the private source changelog and are **not part of the published 0.8.5 executable**. They are development features and fixes, not an announcement of a new public release. Some tools remain BETA or await visual acceptance.
+> These improvements and feature additions are **included in Worldkiln 0.8.5**. Newer or experimental capabilities are available as **BETA features** and may continue to be refined. Fixes and improvements to established functionality are not automatically BETA.
 
 ### Editor and workflow
 
