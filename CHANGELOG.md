@@ -590,6 +590,49 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 
 ---
 
+## 0.8.5 — Particle effects and Entity control (public release)
+
+### Added
+
+- **Particle effects:** authored ParticleEmitter Cells, configurable fire and smoke presets, billboard particle rendering, emitter controls, and AeoScript operations to burst, toggle, clear, and count particles. Emitter settings persist with World data; particle simulation runs during Play.
+- **Entity visibility and activation:** generic AeoScript Entity handles expose `visible` and `enabled`, including Entities behind authored Actors.
+
+### Improved
+
+- Continued the Worldkiln product rename across the editor and scripting integration while retaining compatibility with existing AeoScript projects and stored data.
+
+---
+
+## Development builds after 0.8.5 — Significant improvements and additions
+
+> The following changes are documented in the private source changelog and are **not part of the published 0.8.5 executable**. They are development features and fixes, not an announcement of a new public release. Some tools remain BETA or await visual acceptance.
+
+### Editor and workflow
+
+- **Redesigned editor workspace:** cleaner Home viewport, dedicated Script, UI and Terrain workspaces, contextual Properties, direct Project Settings access, and a searchable feature directory.
+- **Unified Project Explorer:** project-named hierarchy with user folders, Actors, Scripts, scene objects, and a separate Player Scripts section; drag-and-drop organization and safer selection workflows.
+- **Expanded Content Browser:** folder tree, breadcrumbs, scoped search, asset previews, and drag-to-place Actor packages.
+- **Faster building:** common block and Actor properties available directly in Build mode; selecting an object reveals its relevant Inspector settings.
+- **Theme customization:** additional Cyan and Aeo Emerald accent choices.
+
+### Terrain and rendering
+
+- **Layered landscaping:** multiple terrain layers, generator workflows, sculpting, painting, and terrain persistence improvements.
+- **More terrain controls:** procedural grass, beach/sand painting, water and underwater presentation, atmospheric distance fog, and terrain material improvements.
+- **Rendering performance:** improved editor/Play rendering paths, chunk-distance handling, indexed lighting, and reduced repeated work in large Worlds.
+- **Navigation diagnostics:** increased the editor NavMesh snapshot overlay viewing range without changing pathfinding or actual World render distance.
+
+### Scripting, AI, and assets
+
+- **Integrated AI assistant:** source-aware project exploration and guarded editing tools for scripts and scene objects, with configurable approval modes, diagnostics, and per-file Keep/Revert controls.
+- **AeoScript examples:** source-derived working examples and automated example-maintenance checks.
+- **Media and asset handling:** improvements to imported 3D Actors, character packages, media playback, and asset management.
+- **Character selection:** no forced robot/hero default; projects can explicitly choose **None** when no valid Character package is available.
+- **Color-only building:** built-in **Block_txt** option returns Cells to an untextured, color-based appearance without requiring an image texture.
+- **Project reliability:** improvements to save/load preservation, save-data editing, script diagnostics, and error isolation.
+
+---
+
 ## Unreleased — Hearthvale Expansion
 
 ### Added
