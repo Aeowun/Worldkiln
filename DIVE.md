@@ -6,13 +6,13 @@
 >
 > Public releases are available for testing and experimentation. Features, APIs, project formats, and behavior may change between releases.
 >
-> **Current public feature baseline: 0.7.5**
+> **Current public feature baseline: 0.8.5**
 >
 > Features marked **UNRELEASED / TESTING** are part of active 0.8.x development and may not be available in the current public build.
 
 [Support Worldkiln on Ko-fi](https://ko-fi.com/aeowun/tip)
 
-**Build a voxel world, make it playable, and turn it into a standalone game.**
+**Build a world, make it playable, and turn it into a standalone game.**
 
 Worldkiln is a Rust/OpenGL game engine and editor for building voxel worlds, creating gameplay with Actors and AeoScript, testing projects in Play mode, and building standalone games.
 
