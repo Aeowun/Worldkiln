@@ -1,6 +1,6 @@
 # AeoScript Language Overview
 
-> **Worldkiln:** v0.8.0  
+> **Worldkiln:** v0.8.5
 > **AeoScript:** v1.1.2  
 > **Former engine name:** AeoEngine
 
@@ -132,13 +132,44 @@ engine handles
 functions
 ```
 
+## Declaring and reassigning variables
+
+**New variables require an explicit declaration.** Use `const` for a binding
+that cannot be reassigned, or a name followed by a type annotation for a
+mutable variable.
+
+```aeoscript
+const MAX_MOVE_SPEED = 5.0
+waypoints: basket = [[10, 0, 10], [20, 0, -10]]
+PLAYER_FOLLOW_DISTANCE: number = 5.0
+
+PLAYER_FOLLOW_DISTANCE = 10.0
+```
+
+An assignment such as `PLAYER_FOLLOW_DISTANCE = 5.0` is **not** a declaration.
+It is accepted only if `PLAYER_FOLLOW_DISTANCE` was already declared in an
+accessible scope. Otherwise the semantic validator reports an undeclared
+variable, and the runtime also rejects the assignment. Reassigning a `const`
+binding is invalid.
+
+This applies to top-level code, functions, event handlers, closures, and
+nested blocks. Function parameters and `for` loop variables count as
+declarations. Entity field declarations establish fields that entity methods
+can subsequently update. Maps and other objects can still support their
+documented dynamic properties; the rule concerns assigning a bare variable
+name.
+
+**Compatibility:** This declaration requirement describes the current
+development language behavior. Older released editor builds may still accept
+implicit top-level declarations until the next Worldkiln update.
+
 ## Numbers
 
 Numbers are 64-bit floating-point values.
 
 ```aeoscript
 health: number = 100
-speed = 4.5
+speed: number = 4.5
 ```
 
 ## Booleans
@@ -157,7 +188,7 @@ false
 ## Strings
 
 ```aeoscript
-name = "Ghost"
+name: string = "Ghost"
 ```
 
 Strings support Unicode text.
@@ -275,6 +306,10 @@ AeoScript supports:
 Example:
 
 ```aeoscript
+health: number = 0
+dead: bool = false
+const items = ["sword", "shield"]
+
 if health <= 0 {
     dead = true
 }

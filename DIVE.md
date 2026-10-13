@@ -204,7 +204,10 @@ on on_gold(amount) {
 
 AeoScript supports:
 
-- Variables and constants.
+- Explicitly declared variables and constants. New mutable bindings use a
+  type annotation (for example, `speed: number = 5`), and constants use
+  `const speed = 5`. Bare `speed = 6` is reassignment only; an undeclared
+  name is rejected by semantic validation and by the runtime.
 - Functions.
 - Events.
 - Closures.
