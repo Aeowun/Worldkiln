@@ -1,0 +1,9 @@
+// Attach to the authored sawbench Actor once its package is final.
+const sawbench = self.parent
+sawbench.attributes["interaction_kind"] = "process"
+sawbench.attributes["station_tag"] = "sawbench"
+
+on.keypress(key, down) {
+    if down == false || key != "E" { return }
+    scripts.stations.station_actions.aeo.try_process(sawbench, "saw_common_plank", "sawbench")
+}

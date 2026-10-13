@@ -1,0 +1,22 @@
+// Shared presentation state lives in the visible HUD, not in a second global
+// flag. This keeps every conversation compatible with the installed runtime.
+fn is_open() {
+    const panel = ui.find("hearthvale_dialogue_panel")
+    return panel != nil && panel.visible
+}
+
+fn speaker() {
+    const label = ui.find("hearthvale_speaker")
+    if label == nil {
+        return ""
+    }
+    return label.text
+}
+
+fn show(name, message) {
+    event.fire("hearthvale_dialogue", name, message)
+}
+
+fn close() {
+    event.fire("hearthvale_dialogue_closed")
+}

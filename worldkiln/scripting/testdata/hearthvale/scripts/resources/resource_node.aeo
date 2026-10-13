@@ -1,0 +1,58 @@
+// Shared behavior for authored resource Actors. Game-specific nodes stay
+// lightweight: the Actor name selects the resource definition while this
+// Module owns validation, action timing, rewards, depletion, and respawn.
+busy_nodes: map = {}
+
+fn distance_squared(actor) {
+    const here = player.position
+    const there = actor.position
+    const dx = here[0] - there[0]
+    const dy = here[1] - there[1]
+    const dz = here[2] - there[2]
+    return dx * dx + dy * dy + dz * dz
+}
+
+fn try_gather(actor, resource_id, depleted_actor) {
+    if actor == nil || actor.visible == false || player == nil {
+        return false
+    }
+    const node_id = actor.actor_id
+    if busy_nodes[node_id] == true {
+        event.fire("hearthvale_system_message", "That resource is recovering.")
+        return false
+    }
+    if distance_squared(actor) > 16 {
+        return false
+    }
+    const gathering = scripts.systems.gathering.aeo
+    const reason = gathering.failure_reason(resource_id)
+    if reason != nil {
+        event.fire("hearthvale_system_message", reason)
+        return false
+    }
+    busy_nodes[node_id] = true
+    event.fire("hearthvale_action_started", scripts.data.resources.aeo.action_name(resource_id), node_id)
+    wait(1.2)
+    if actor.visible == false || distance_squared(actor) > 16 {
+        busy_nodes[node_id] = nil
+        event.fire("hearthvale_action_cancelled", node_id, "moved_away")
+        return false
+    }
+    if gathering.complete(resource_id) == false {
+        busy_nodes[node_id] = nil
+        return false
+    }
+    actor.visible = false
+    if depleted_actor != nil {
+        depleted_actor.visible = true
+    }
+    event.fire("hearthvale_action_completed", node_id)
+    wait(scripts.data.resources.aeo.respawn_seconds(resource_id))
+    actor.visible = true
+    if depleted_actor != nil {
+        depleted_actor.visible = false
+    }
+    busy_nodes[node_id] = nil
+    event.fire("hearthvale_resource_respawned", resource_id, node_id)
+    return true
+}

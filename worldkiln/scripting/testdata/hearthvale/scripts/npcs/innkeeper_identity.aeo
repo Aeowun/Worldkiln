@@ -1,0 +1,4 @@
+const innkeeper = self.parent
+innkeeper.attributes["role"] = "Keeper of the Copper Kettle"
+innkeeper.attributes["home"] = "The Copper Kettle"
+innkeeper.attributes["dialogue"] = "innkeeper_conversation"

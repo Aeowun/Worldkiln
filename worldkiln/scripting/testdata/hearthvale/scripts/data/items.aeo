@@ -1,0 +1,86 @@
+// Stable item definitions. Save data stores these IDs, never display names.
+fn all_ids() {
+    return [
+        "watch_key",
+        "hearthbread",
+        "roadwarden_blade",
+        "worn_hatchet",
+        "common_log",
+        "common_plank",
+        "fishing_rod",
+        "raw_trout",
+        "cooked_trout"
+    ]
+}
+
+fn exists(item_id) {
+    return basket.find(all_ids(), item_id) != nil
+}
+
+fn display_name(item_id) {
+    if item_id == "watch_key" {
+        return "Beacon key"
+    }
+    if item_id == "hearthbread" {
+        return "Hearthbread"
+    }
+    if item_id == "roadwarden_blade" {
+        return "Roadwarden blade"
+    }
+    if item_id == "worn_hatchet" {
+        return "Worn hatchet"
+    }
+    if item_id == "common_log" {
+        return "Common logs"
+    }
+    if item_id == "common_plank" {
+        return "Common planks"
+    }
+    if item_id == "fishing_rod" {
+        return "Fishing rod"
+    }
+    if item_id == "raw_trout" {
+        return "Raw trout"
+    }
+    if item_id == "cooked_trout" {
+        return "Cooked trout"
+    }
+    return item_id
+}
+
+fn stackable(item_id) {
+    return item_id == "common_log" || item_id == "common_plank"
+}
+
+fn equipment_slot(item_id) {
+    if item_id == "roadwarden_blade" || item_id == "worn_hatchet" || item_id == "fishing_rod" {
+        return "main_hand"
+    }
+    return nil
+}
+
+fn tool_tag(item_id) {
+    if item_id == "worn_hatchet" {
+        return "hatchet"
+    }
+    if item_id == "roadwarden_blade" {
+        return "blade"
+    }
+    if item_id == "fishing_rod" {
+        return "fishing_rod"
+    }
+    return nil
+}
+
+fn actor_package(item_id) {
+    if item_id == "roadwarden_blade" {
+        return "hand_sword"
+    }
+    if item_id == "worn_hatchet" {
+        return "hand_hatchet_worn"
+    }
+    if item_id == "fishing_rod" {
+        return "hand_fishing_rod"
+    }
+    return nil
+}

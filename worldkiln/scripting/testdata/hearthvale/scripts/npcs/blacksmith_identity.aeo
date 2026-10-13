@@ -1,0 +1,4 @@
+const blacksmith = self.parent
+blacksmith.attributes["role"] = "Master of the Emberforge"
+blacksmith.attributes["home"] = "Emberforge Smithy"
+blacksmith.attributes["dialogue"] = "blacksmith_conversation"

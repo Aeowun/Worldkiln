@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "generated_at": "2026-10-09",
+  "note": "Manually crosschecked factual runtime behavior against Rust source in isolated Worldkiln AI copy. Facts are limited; not a proof of every API.",
+  "facts": [
+    {
+      "id": "runtime.global.top_level",
+      "topic": "global scripts startup",
+      "fact": "Any enabled standalone .aeo file in scripts/ runs its top-level statements when Play starts. It does not require an entity declaration or an event wrapper.",
+      "evidence": [
+        "src/scripting/scene.rs:700-742",
+        "src/scripting/runtime.rs:270-334"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/getting-started/"
+      ],
+      "example": "debug.log(\"Welcome to Worldkiln!\")"
+    },
+    {
+      "id": "runtime.global.disable",
+      "topic": "enable disable scripts",
+      "fact": "Disabled script paths are skipped by the initial top-level scheduler. Re-enabling spawns a new top-level task if one is not already scheduled.",
+      "evidence": [
+        "src/scripting/scene.rs:712-723",
+        "src/scripting/scene.rs:1020-1080"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/script-control/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "runtime.actor.module",
+      "topic": "actor attached script module parent self.parent",
+      "fact": "When a .aeo Module is attached to an authored Actor through the project hierarchy/binding, it runs as a distinct Actor Module instance, not a standalone global script. self.parent resolves to that Actor. The same file can have separate instances per Actor.",
+      "evidence": [
+        "src/scripting/scene.rs:525-566",
+        "src/scripting/scene.rs:704-712",
+        "src/scripting/scene.rs:973-1000",
+        "src/scripting/interpreter/interpreter_eval.rs:838-859",
+        "src/scripting/interpreter/interpreter_tests.rs:2765-2802"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/modules/"
+      ],
+      "example": "const actor = self.parent\nactor.on_touch = fn(thing) {\n  debug.log(\"Touched\", thing)\n}"
+    },
+    {
+      "id": "runtime.actor.no_entity_block",
+      "topic": "actor attached scripts entity lifecycle differences",
+      "fact": "Actor Modules DO NOT bind legacy entity {...} blocks. Entity declaration lifecycle methods in an Actor Module are not invoked as Actor callbacks; instead use top-level Module statements and assign supported Actor handler fields. No fn on_ready lifecycle assumed for Actor Module.",
+      "evidence": [
+        "src/scripting/scene.rs:774-790",
+        "src/scripting/scene.rs:980-1000"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/modules/"
+      ],
+      "example": "const actor = self.parent\nactor.on_touch = fn(thing) { debug.log(\"Touched\", thing) }"
+    },
+    {
+      "id": "runtime.module.unattached.parent",
+      "topic": "self.parent unavailable standalone module",
+      "fact": "A standalone Module instance has no Actor parent; attempting to read self.parent throws an interpreter error. Do not emit self.parent unless the Module has a known Actor attachment.",
+      "evidence": [
+        "src/scripting/interpreter/interpreter_eval.rs:840-856",
+        "src/scripting/interpreter/interpreter_tests.rs:2865-2905"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/modules/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "runtime.cell.legacy_binding",
+      "topic": "cell bound script entity declaration binding cell",
+      "fact": "The current Cell script binding path is separate from Actor Modules: a Cell binding uses Cell ID and script path and checks for a matching legacy entity declaration before starting its lifecycle. Do NOT assume self.parent resolves to a Cell: current Module self.parent logic explicitly handles Actor IDs only.",
+      "evidence": [
+        "src/scripting/scene.rs:570-619",
+        "src/scripting/scene.rs:981-1008",
+        "src/scripting/interpreter/interpreter_eval.rs:838-859"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/bindings/",
+        "https://aeowun.com/aeoscript/entities/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "runtime.entity.lifecycle",
+      "topic": "legacy entity script lifecycle cell on_spawn on_ready update on_destroy",
+      "fact": "The Entity lifecycle supports on_spawn(), on_ready(), update(dt), and on_destroy() only when a compatible Entity declaration is actually bound/instantiated. An unbound declaration alone does not trigger any lifecycle method.",
+      "evidence": [
+        "src/scripting/scene.rs:756-823",
+        "src/scripting/scene.rs:987-1013",
+        "src/scripting/scene.rs:2056-2071"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/entities/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "runtime.events.listeners",
+      "topic": "event listener on start custom event.fire",
+      "fact": "on name(args) { ... } is an event listener registration. It does NOT automatically run at startup merely because it is named start. Event dispatch must occur. Top-level statements are the ordinary startup mechanism.",
+      "evidence": [
+        "src/scripting/parser/parser_declarations.rs:21-61",
+        "src/scripting/runtime.rs:128-175",
+        "src/scripting/scene.rs:685-708"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/events/"
+      ],
+      "example": "on score_changed(value) { debug.log(value) }\nevent.fire(\"score_changed\", 5)"
+    },
+    {
+      "id": "runtime.ui.builtins",
+      "topic": "ui.new ui.find ui.get ui.delete ui.get_viewport_size UI script",
+      "fact": "Worldkiln exposes runtime UI functions ui.new(type), ui.find(key), ui.get(key), ui.delete(handle), and ui.get_viewport_size(). Inspect stdlib.rs for arguments; UI controls are handles.",
+      "evidence": [
+        "src/scripting/stdlib.rs:477-558",
+        "src/scripting/api.rs:452-490"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/ui/",
+        "https://aeowun.com/docs/reference/ui/"
+      ],
+      "example": "const button = ui.new(\"Button\")\nbutton.text = \"Start\""
+    },
+    {
+      "id": "runtime.ui.types",
+      "topic": "menu ui Panel Text Button Image Video",
+      "fact": "Current engine UI runtime types include Panel, Text, Button, Image and Video; live /aeoscript/ui/ page lists only Panel, Text, Button and is behind current source for media controls.",
+      "evidence": [
+        "src/engine/ui.rs:200-229",
+        "src/engine/ui.rs:705-739"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/ui/"
+      ],
+      "example": "const button = ui.new(\"Button\")"
+    },
+    {
+      "id": "runtime.ui.authored",
+      "topic": "editor authored UI project saved document versus runtime UI",
+      "fact": "Worldkiln has a persisted authored UI workspace with documents (default Main UI, key main_ui). UI created at runtime and modified during Play is not automatically saved back to authored UI. Main menu design may require editor-owned UI document changes plus runtime AeoScript.",
+      "evidence": [
+        "src/engine/ui_authoring.rs:57-116",
+        "src/engine/ui.rs:200-229"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/ui/",
+        "https://aeowun.com/docs/reference/ui/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "runtime.player.modules",
+      "topic": "playerscripts Player Actor module",
+      "fact": "Files under playerscripts/ attach as Player modules and are not executed as standalone global scripts; use the Player context and explicit module handles.",
+      "evidence": [
+        "src/scripting/scene.rs:1045-1076",
+        "src/project/index.rs:7-20"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/modules/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "runtime.syntax.parser",
+      "topic": "AeoScript lexer parser syntax source",
+      "fact": "AeoScript syntax is owned by the Rust Lexer and Parser. Syntax acceptance is not proof that a runtime method exists, a binding exists, or a handler is dispatched.",
+      "evidence": [
+        "src/scripting/lexer.rs:22-57",
+        "src/scripting/parser/mod.rs:38-67",
+        "src/editor/script_editor/script_editor_documents.rs:29-85"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/syntax/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "runtime.docs.parser_defect",
+      "topic": "documentation physics entity parser property reserved keyword entity",
+      "fact": "Three live documentation examples fail current lexer/parser because they access .entity as a member, where 'entity' is a reserved token. They occur in the Entity and Physics API reference pages. Do not use these examples unmodified.",
+      "evidence": [
+        "src/scripting/parser/parser_expressions.rs",
+        "src/scripting/token.rs",
+        "src/editor/editor/ai_knowledge.rs"
+      ],
+      "docs": [
+        "https://aeowun.com/docs/reference/entity/",
+        "https://aeowun.com/docs/reference/physics/"
+      ],
+      "example": ""
+    },
+    {
+      "id": "editor.project_manager.parenting",
+      "topic": "Project Manager Project Explorer attach parent script actor hierarchy drag drop",
+      "fact": "Scripts are NOT automatically parented to Actors or Cells when created. A creator parents or moves script nodes in the Project Manager/Project Explorer hierarchy. Actor attachment is derived from the nearest non-Folder Actor ancestor. A script nested beneath another script is not separately attached. Moving a script beneath an Actor creates/synchronizes its ActorScriptBinding; moving it out removes that binding. The editor uses atomic hierarchy move validation, undo snapshots, binding reconciliation, and project save-dirty tracking. The AI must not claim it has parented a script unless it has executed the same editor hierarchy mutation and binding synchronization; source generation alone does not parent anything.",
+      "evidence": [
+        "src/editor/editor/project_explorer.rs:148-164",
+        "src/editor/editor/project_explorer.rs:1055-1099",
+        "src/editor/editor/project_explorer.rs:1108-1145",
+        "src/project/hierarchy.rs:251-299",
+        "src/project/hierarchy.rs:425-466",
+        "src/project/hierarchy.rs:469-530",
+        "src/editor/editor/project_explorer.rs:2166-2208"
+      ],
+      "docs": [
+        "https://aeowun.com/aeoscript/bindings/",
+        "https://aeowun.com/aeoscript/modules/"
+      ],
+      "example": "// In Project Manager: parent script node beneath Actor node (no extra syntax needed to attach).\n// Attached Actor Module:\nconst actor = self.parent\nactor.on_touch = fn(other) {\n    debug.log(\"Touched\", other)\n}"
+    }
+  ]
+}

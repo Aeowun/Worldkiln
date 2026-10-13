@@ -1,0 +1,165 @@
+// Screen-spanning framing leaves the world visible through the center.
+// This installed build centers Label text inside its sized box, so the
+// dialogue speaker/body use separate, short-height boxes with a clear gap.
+const viewport = ui.get_viewport_size()
+const width = viewport[0]
+
+const header = ui.new("Panel")
+header.key = "hearthvale_header"
+header.anchor = "TopCenter"
+header.size = [width, 64]
+header.color = [0.06, 0.045, 0.035, 0.88]
+header.border_color = [0.65, 0.38, 0.13, 1]
+header.border_width = 2
+
+const title = ui.new("Text")
+title.anchor = "TopLeft"
+title.position = [26, 13]
+title.size = [350, 35]
+title.text = "HEARTHVALE  /  THE FIRST BEACON"
+title.color = [0.94, 0.74, 0.43, 1]
+
+const controls = ui.new("Text")
+controls.anchor = "TopRight"
+controls.position = [-400, 13]
+controls.size = [380, 35]
+controls.text = "E  INTERACT     TAB  MENU     Q  CLOSE"
+controls.color = [0.86, 0.83, 0.74, 1]
+
+const quest_panel = ui.new("Panel")
+quest_panel.key = "hearthvale_quest_panel"
+quest_panel.anchor = "TopLeft"
+quest_panel.position = [18, 82]
+quest_panel.size = [305, 105]
+quest_panel.color = [0.07, 0.055, 0.043, 0.77]
+quest_panel.border_color = [0.47, 0.28, 0.12, 1]
+quest_panel.border_width = 1
+
+const quest_title = ui.new("Text")
+quest_title.key = "hearthvale_quest_title"
+quest_title.anchor = "TopLeft"
+quest_title.position = [33, 92]
+quest_title.size = [270, 24]
+quest_title.text = "QUEST  /  THE BROKEN WATCH"
+quest_title.color = [0.94, 0.74, 0.43, 1]
+
+const objective = ui.new("Text")
+objective.key = "hearthvale_objective"
+objective.anchor = "TopLeft"
+objective.position = [33, 121]
+objective.size = [275, 60]
+objective.color = [0.93, 0.91, 0.84, 1]
+
+const bag_panel = ui.new("Panel")
+bag_panel.anchor = "TopRight"
+bag_panel.position = [-240, 82]
+bag_panel.size = [222, 125]
+bag_panel.color = [0.07, 0.055, 0.043, 0.77]
+bag_panel.border_color = [0.47, 0.28, 0.12, 1]
+bag_panel.border_width = 1
+
+const bag_title = ui.new("Text")
+bag_title.anchor = "TopRight"
+bag_title.position = [-226, 92]
+bag_title.size = [190, 24]
+bag_title.text = "SATCHEL"
+bag_title.color = [0.94, 0.74, 0.43, 1]
+
+const bag_item = ui.new("Text")
+bag_item.key = "hearthvale_bag_item"
+bag_item.anchor = "TopRight"
+bag_item.position = [-226, 145]
+bag_item.size = [190, 50]
+bag_item.color = [0.93, 0.91, 0.84, 1]
+
+const currency = ui.new("Text")
+currency.key = "hearthvale_crowns"
+currency.anchor = "TopRight"
+currency.position = [-226, 118]
+currency.size = [190, 24]
+currency.color = [0.94, 0.74, 0.43, 1]
+
+const dialogue_panel = ui.new("Panel")
+dialogue_panel.key = "hearthvale_dialogue_panel"
+dialogue_panel.anchor = "BottomCenter"
+dialogue_panel.position = [0, -12]
+dialogue_panel.size = [width - 36, 168]
+dialogue_panel.color = [0.055, 0.045, 0.037, 0.93]
+dialogue_panel.border_color = [0.72, 0.43, 0.16, 1]
+dialogue_panel.border_width = 2
+dialogue_panel.visible = false
+
+const speaker = ui.new("Text")
+speaker.key = "hearthvale_speaker"
+speaker.anchor = "TopLeft"
+speaker.position = [43, viewport[1] - 162]
+speaker.size = [width - 90, 24]
+speaker.color = [0.95, 0.75, 0.42, 1]
+speaker.visible = false
+
+const speech = ui.new("Text")
+speech.key = "hearthvale_speech"
+speech.anchor = "TopLeft"
+speech.position = [43, viewport[1] - 122]
+speech.size = [width - 90, 68]
+speech.color = [0.95, 0.93, 0.85, 1]
+speech.visible = false
+
+fn refresh_journal() {
+    const journal = scripts.quests.journal.aeo
+    quest_title.text = "QUEST  /  " + journal.active_title()
+    objective.text = journal.active_objective()
+}
+
+fn refresh_bag() {
+    const inventory = scripts.systems.inventory.aeo
+    const equipped = scripts.systems.equipment.aeo.equipped("main_hand")
+    text: string = inventory.summary(3)
+    if equipped != nil {
+        text = "Wielding: " + scripts.data.items.aeo.display_name(equipped) + "\n" + text
+    }
+    bag_item.text = text
+}
+
+fn set_crowns(total) {
+    currency.text = "Crowns  " + total
+}
+
+refresh_journal()
+refresh_bag()
+set_crowns(scripts.systems.economy.aeo.crowns())
+
+on hearthvale_quest_changed(phase) {
+    refresh_journal()
+}
+
+on hearthvale_journal_changed() {
+    refresh_journal()
+}
+
+on hearthvale_inventory_changed(item_id, quantity) {
+    refresh_bag()
+}
+
+on hearthvale_currency_changed(total) {
+    set_crowns(total)
+}
+
+on hearthvale_equipment_changed(slot_id, item_id) {
+    refresh_journal()
+    refresh_bag()
+}
+
+on hearthvale_dialogue(name, message) {
+    speaker.text = name
+    speech.text = message
+    dialogue_panel.visible = true
+    speaker.visible = true
+    speech.visible = true
+}
+
+on hearthvale_dialogue_closed() {
+    dialogue_panel.visible = false
+    speaker.visible = false
+    speech.visible = false
+}

@@ -1,0 +1,45 @@
+fn failure_reason(recipe_id, station_tag) {
+    const data = scripts.data.recipes.aeo
+    if data.exists(recipe_id) == false {
+        return "Unknown recipe."
+    }
+    if data.station_tag(recipe_id) != station_tag {
+        return "This recipe needs a " + data.station_tag(recipe_id) + "."
+    }
+    const skill_id = data.skill_id(recipe_id)
+    if scripts.systems.skills.aeo.level(skill_id) < data.required_level(recipe_id) {
+        return "You need level " + data.required_level(recipe_id) + " " + scripts.systems.skills.aeo.display_name(skill_id) + "."
+    }
+    const inventory = scripts.systems.inventory.aeo
+    if inventory.has(data.input_item(recipe_id), 1) == false {
+        return "You do not have the required material."
+    }
+    if inventory.can_exchange(data.input_item(recipe_id), 1, data.output_item(recipe_id), 1) == false {
+        return "Your inventory is full."
+    }
+    return nil
+}
+
+fn complete(recipe_id, station_tag) {
+    const reason = failure_reason(recipe_id, station_tag)
+    if reason != nil {
+        event.fire("hearthvale_system_message", reason)
+        return false
+    }
+    const data = scripts.data.recipes.aeo
+    const inventory = scripts.systems.inventory.aeo
+    const skills = scripts.systems.skills.aeo
+    const input_id = data.input_item(recipe_id)
+    const output_id = data.output_item(recipe_id)
+    const skill_id = data.skill_id(recipe_id)
+    const old_level = skills.level(skill_id)
+    if inventory.stage_remove(input_id, 1) == false || inventory.stage_add(output_id, 1) == false || skills.stage_add_xp(skill_id, data.xp(recipe_id)) == false {
+        return false
+    }
+    save.commit()
+    inventory.notify_changed(input_id)
+    inventory.notify_changed(output_id)
+    skills.notify_changed(skill_id, old_level)
+    event.fire("hearthvale_recipe_completed", recipe_id, output_id)
+    return true
+}

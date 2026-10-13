@@ -1,0 +1,3 @@
+const guard = self.parent
+guard.attributes["role"] = "North postern guard"
+guard.attributes["home"] = "North postern"

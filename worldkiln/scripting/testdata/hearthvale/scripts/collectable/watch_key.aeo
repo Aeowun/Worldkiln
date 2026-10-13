@@ -1,0 +1,16 @@
+// The authored key is visible only until collected. Save state wins on reload.
+fn sync() {
+    const key = proj.find("WatchBeaconKey")
+    if key == nil {
+        return
+    }
+    key.visible = scripts.quests.watch_quest.aeo.stage() < 2
+}
+
+fn try_collect() {
+    if scripts.quests.watch_quest.aeo.collect_key() {
+        sync()
+    }
+}
+
+sync()

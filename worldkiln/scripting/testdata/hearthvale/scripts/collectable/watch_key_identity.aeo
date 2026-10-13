@@ -1,0 +1,4 @@
+// Actor-attached collectible metadata, separate from quest progression.
+const key_actor = self.parent
+key_actor.attributes["item_id"] = "watch_beacon_key"
+key_actor.attributes["display_name"] = "Beacon key"

@@ -1,0 +1,31 @@
+// Compatibility facade for the original quest scripts. All item state now
+// belongs to the shared inventory service.
+fn watch_key_count() {
+    return scripts.systems.inventory.aeo.count("watch_key")
+}
+
+fn add_watch_key() {
+    return scripts.systems.inventory.aeo.add("watch_key", 1)
+}
+
+fn remove_watch_key() {
+    return scripts.systems.inventory.aeo.remove("watch_key", 1)
+}
+
+fn hearthbread_count() {
+    return scripts.systems.inventory.aeo.count("hearthbread")
+}
+
+fn claim_beacon_supper() {
+    if save.has("hearthvale.inn.beacon_supper_claimed") {
+        return false
+    }
+    const inventory = scripts.systems.inventory.aeo
+    if inventory.stage_add("hearthbread", 1) == false {
+        return false
+    }
+    save.set("hearthvale.inn.beacon_supper_claimed", true)
+    save.commit()
+    inventory.notify_changed("hearthbread")
+    return true
+}

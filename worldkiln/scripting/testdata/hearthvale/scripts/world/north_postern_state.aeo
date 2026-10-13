@@ -1,0 +1,20 @@
+// Broken and repaired postern Actors share this adapter. Their packages are
+// immutable, so save state selects exactly one visible/collidable state.
+const postern = self.parent
+
+fn sync_state() {
+    const repaired = scripts.quests.roots_beneath_wall.aeo.stage() >= 5
+    if postern.package == "world_north_postern_repaired" {
+        postern.visible = repaired
+        postern.enabled = repaired
+    } else {
+        postern.visible = repaired == false
+        postern.enabled = repaired == false
+    }
+}
+
+sync_state()
+
+on hearthvale_roots_changed(stage) {
+    sync_state()
+}

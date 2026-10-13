@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "authority": "engine source and tests only",
+  "notes": "Source-derived initial seed. Test validates syntax and script context; runtime verification is NOT claimed. Every entry must match its cited source test.",
+  "entries": [
+    {
+      "id": "language.function.add",
+      "category": "language",
+      "context": "global",
+      "title": "Typed function and return",
+      "source_file": "src/scripting/parser/parser_tests.rs",
+      "source_test": "parses_function_parameters_and_return_type",
+      "code": "fn add(a: number, b: number): number {\n    return a + b\n}",
+      "verification": "parser_context_tested",
+      "source_fingerprints": {
+        "src/editor/editor/ai_script.rs": "8d383d4e2c814d4a",
+        "src/scripting/ast.rs": "4091a3af759aa00c",
+        "src/scripting/interpreter/interpreter_eval.rs": "e0679522bb1f59fe",
+        "src/scripting/lexer.rs": "0321c1ee63ae1796",
+        "src/scripting/parser/mod.rs": "2edfc8ae82318d04",
+        "src/scripting/parser/parser_declarations.rs": "455e42fe9fc676c5",
+        "src/scripting/parser/parser_expressions.rs": "617e6c6fb32c1bb8",
+        "src/scripting/parser/parser_statements.rs": "9c4a6e7b180ec551",
+        "src/scripting/parser/parser_tests.rs": "4089d5c0f945f1f3",
+        "src/scripting/token.rs": "720b17724f3354e5"
+      },
+      "runtime_verified": false
+    },
+    {
+      "id": "language.entity.field",
+      "category": "language",
+      "context": "cell_legacy",
+      "title": "Entity field declaration",
+      "source_file": "src/scripting/parser/parser_tests.rs",
+      "source_test": "parses_expression_precedence",
+      "code": "entity Test {\n    value: number = 1 + 2 * 3\n}",
+      "verification": "parser_context_tested",
+      "source_fingerprints": {
+        "src/editor/editor/ai_script.rs": "8d383d4e2c814d4a",
+        "src/scripting/ast.rs": "4091a3af759aa00c",
+        "src/scripting/interpreter/interpreter_eval.rs": "e0679522bb1f59fe",
+        "src/scripting/lexer.rs": "0321c1ee63ae1796",
+        "src/scripting/parser/mod.rs": "2edfc8ae82318d04",
+        "src/scripting/parser/parser_declarations.rs": "455e42fe9fc676c5",
+        "src/scripting/parser/parser_expressions.rs": "617e6c6fb32c1bb8",
+        "src/scripting/parser/parser_statements.rs": "9c4a6e7b180ec551",
+        "src/scripting/parser/parser_tests.rs": "4089d5c0f945f1f3",
+        "src/scripting/token.rs": "720b17724f3354e5"
+      },
+      "runtime_verified": false
+    },
+    {
+      "id": "language.entity.update",
+      "category": "language",
+      "context": "cell_legacy",
+      "title": "Entity declaration and update",
+      "source_file": "src/scripting/parser/parser_tests.rs",
+      "source_test": "parses_basic_entity",
+      "code": "entity Door {\n    open: bool = false\n    fn update(dt: number) {\n        if open {\n            print(\"open\")\n        }\n    }\n}",
+      "verification": "parser_context_tested",
+      "source_fingerprints": {
+        "src/editor/editor/ai_script.rs": "8d383d4e2c814d4a",
+        "src/scripting/ast.rs": "4091a3af759aa00c",
+        "src/scripting/interpreter/interpreter_eval.rs": "e0679522bb1f59fe",
+        "src/scripting/lexer.rs": "0321c1ee63ae1796",
+        "src/scripting/parser/mod.rs": "2edfc8ae82318d04",
+        "src/scripting/parser/parser_declarations.rs": "455e42fe9fc676c5",
+        "src/scripting/parser/parser_expressions.rs": "617e6c6fb32c1bb8",
+        "src/scripting/parser/parser_statements.rs": "9c4a6e7b180ec551",
+        "src/scripting/parser/parser_tests.rs": "4089d5c0f945f1f3",
+        "src/scripting/token.rs": "720b17724f3354e5"
+      },
+      "runtime_verified": false
+    },
+    {
+      "id": "startup.global.log",
+      "category": "startup",
+      "context": "global",
+      "title": "Top-level startup log",
+      "source_file": "src/editor/editor/ai_script.rs",
+      "source_test": "global_startup_is_not_an_event_listener",
+      "code": "debug.log(\"Welcome to Worldkiln!\")",
+      "verification": "parser_context_tested",
+      "source_fingerprints": {
+        "src/editor/editor/ai_script.rs": "8d383d4e2c814d4a",
+        "src/scripting/ast.rs": "4091a3af759aa00c",
+        "src/scripting/lexer.rs": "0321c1ee63ae1796",
+        "src/scripting/parser/mod.rs": "2edfc8ae82318d04",
+        "src/scripting/parser/parser_declarations.rs": "455e42fe9fc676c5",
+        "src/scripting/parser/parser_expressions.rs": "617e6c6fb32c1bb8",
+        "src/scripting/parser/parser_statements.rs": "9c4a6e7b180ec551",
+        "src/scripting/runtime.rs": "976c66301e2404ac",
+        "src/scripting/scene.rs": "2ea5644ffd2ada09",
+        "src/scripting/token.rs": "720b17724f3354e5"
+      },
+      "runtime_verified": false
+    },
+    {
+      "id": "events.custom.fire",
+      "category": "events",
+      "context": "global",
+      "title": "Register and fire custom event",
+      "source_file": "src/editor/editor/ai_script.rs",
+      "source_test": "legitimate_global_custom_event_is_supported",
+      "code": "on score_changed(score) {\n    debug.log(score)\n}\nevent.fire(\"score_changed\", 5)",
+      "verification": "parser_context_tested",
+      "source_fingerprints": {
+        "src/editor/editor/ai_script.rs": "8d383d4e2c814d4a",
+        "src/scripting/ast.rs": "4091a3af759aa00c",
+        "src/scripting/lexer.rs": "0321c1ee63ae1796",
+        "src/scripting/parser/mod.rs": "2edfc8ae82318d04",
+        "src/scripting/parser/parser_declarations.rs": "455e42fe9fc676c5",
+        "src/scripting/parser/parser_expressions.rs": "617e6c6fb32c1bb8",
+        "src/scripting/parser/parser_statements.rs": "9c4a6e7b180ec551",
+        "src/scripting/runtime.rs": "976c66301e2404ac",
+        "src/scripting/scene.rs": "2ea5644ffd2ada09",
+        "src/scripting/token.rs": "720b17724f3354e5"
+      },
+      "runtime_verified": false
+    },
+    {
+      "id": "actors.module.touch",
+      "category": "actors",
+      "context": "actor_module",
+      "title": "Actor module touch handler",
+      "source_file": "src/editor/editor/ai_script.rs",
+      "source_test": "actor_module_requires_real_actor_semantics",
+      "code": "const actor = self.parent\nactor.on_touch = fn(other) { debug.log(other) }",
+      "verification": "parser_context_tested",
+      "source_fingerprints": {
+        "src/editor/editor/ai_script.rs": "8d383d4e2c814d4a",
+        "src/project/hierarchy.rs": "5a052d82fc505ae1",
+        "src/scripting/ast.rs": "4091a3af759aa00c",
+        "src/scripting/lexer.rs": "0321c1ee63ae1796",
+        "src/scripting/parser/mod.rs": "2edfc8ae82318d04",
+        "src/scripting/parser/parser_declarations.rs": "455e42fe9fc676c5",
+        "src/scripting/parser/parser_expressions.rs": "617e6c6fb32c1bb8",
+        "src/scripting/parser/parser_statements.rs": "9c4a6e7b180ec551",
+        "src/scripting/scene.rs": "2ea5644ffd2ada09",
+        "src/scripting/token.rs": "720b17724f3354e5"
+      },
+      "runtime_verified": false
+    }
+  ]
+}

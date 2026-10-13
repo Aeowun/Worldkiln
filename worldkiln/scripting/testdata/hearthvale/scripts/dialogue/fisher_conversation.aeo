@@ -1,0 +1,34 @@
+fn is_open() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    return presenter.is_open() && presenter.speaker() == "ELOWEN REED"
+}
+
+fn show() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    const quest = scripts.quests.catch_for_kettle.aeo
+    const current = quest.stage()
+    if current == 0 {
+        presenter.show("ELOWEN REED", "Apple Pond is running silver, but Mara's kettle is empty. Catch three trout, cook two at the inn fire, and bring them back.  [E] Take the rod  [Q] Leave")
+    } else if current == 1 {
+        presenter.show("ELOWEN REED", "Cast beside the marked post. Three trout should be enough to choose the best two.  [E] Close")
+    } else if current == 2 {
+        presenter.show("ELOWEN REED", "Mara keeps a cooking fire beside the Copper Kettle. Cook two trout there.  [E] Close")
+    } else if current == 3 {
+        presenter.show("ELOWEN REED", "That smoke carries all the way across the pond. Two cooked trout, and the Kettle's supper is saved.  [E] Deliver trout")
+    } else {
+        presenter.show("ELOWEN REED", "The pond gives what patient hands earn. Keep the rod; there will always be another cast.  [E] Close")
+    }
+}
+
+fn advance() {
+    const quest = scripts.quests.catch_for_kettle.aeo
+    if quest.stage() == 0 {
+        if quest.accept() { show() }
+        return
+    }
+    if quest.stage() == 3 {
+        if quest.complete_delivery() { show() }
+        return
+    }
+    scripts.dialogue.dialogue_presenter.aeo.close()
+}

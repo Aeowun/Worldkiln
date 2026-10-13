@@ -1,0 +1,42 @@
+fn failure_reason(resource_id) {
+    const data = scripts.data.resources.aeo
+    if data.exists(resource_id) == false {
+        return "Unknown resource."
+    }
+    const skill_id = data.skill_id(resource_id)
+    if scripts.systems.skills.aeo.level(skill_id) < data.required_level(resource_id) {
+        return "You need level " + data.required_level(resource_id) + " " + scripts.systems.skills.aeo.display_name(skill_id) + "."
+    }
+    const tool = data.tool_tag(resource_id)
+    if tool != nil && scripts.systems.equipment.aeo.has_tool(tool) == false {
+        return "You need an equipped " + tool + "."
+    }
+    if scripts.systems.inventory.aeo.can_add(data.item_id(resource_id), 1) == false {
+        return "Your inventory is full."
+    }
+    return nil
+}
+
+// Node adapters own range, timing, charges, visuals, and respawn. This shared
+// completion owns the atomic item + XP transaction.
+fn complete(resource_id) {
+    const reason = failure_reason(resource_id)
+    if reason != nil {
+        event.fire("hearthvale_system_message", reason)
+        return false
+    }
+    const data = scripts.data.resources.aeo
+    const inventory = scripts.systems.inventory.aeo
+    const skills = scripts.systems.skills.aeo
+    const item_id = data.item_id(resource_id)
+    const skill_id = data.skill_id(resource_id)
+    const old_level = skills.level(skill_id)
+    if inventory.stage_add(item_id, 1) == false || skills.stage_add_xp(skill_id, data.xp(resource_id)) == false {
+        return false
+    }
+    save.commit()
+    inventory.notify_changed(item_id)
+    skills.notify_changed(skill_id, old_level)
+    event.fire("hearthvale_resource_gathered", resource_id, item_id)
+    return true
+}

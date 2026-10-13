@@ -1,0 +1,23 @@
+// Torren crosses only the smithy yard; completion callbacks drive each leg.
+const blacksmith = self.parent
+at_anvil: bool = true
+
+fn walk_next() {
+    if at_anvil {
+        at_anvil = false
+        blacksmith.navigate_to([-14, 1, 17], 1.0, 0.3)
+    } else {
+        at_anvil = true
+        blacksmith.navigate_to([-17, 1, 20], 1.0, 0.3)
+    }
+}
+
+blacksmith.on_navigation_finished = fn() {
+    walk_next()
+}
+
+blacksmith.on_navigation_failed = fn(reason) {
+    debug.log("Torren's smithy route paused: " + reason)
+}
+
+walk_next()

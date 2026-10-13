@@ -1,0 +1,134 @@
+// The first skill-driven quest owns only its durable progression facts.
+// Resource, recipe, equipment, UI, and world adapters remain separate Modules.
+const stage_key = "hearthvale.quest.roots_beneath_wall.stage"
+const inspected_key = "hearthvale.quest.roots_beneath_wall.inspected_count"
+const ward_ash_key = "hearthvale.quest.roots_beneath_wall.ward_ash_found"
+
+fn stage() {
+    const saved = save.get(stage_key)
+    if saved == nil { return 0 }
+    return saved
+}
+
+fn set_stage(next_stage) {
+    if next_stage <= stage() { return false }
+    save.set(stage_key, next_stage)
+    save.commit()
+    event.fire("hearthvale_roots_changed", next_stage)
+    event.fire("hearthvale_journal_changed")
+    return true
+}
+
+fn inspected_count() {
+    const saved = save.get(inspected_key)
+    if saved == nil { return 0 }
+    return saved
+}
+
+fn found_ward_ash() {
+    return save.get(ward_ash_key) == true
+}
+
+fn grant_hatchet() {
+    const inventory = scripts.systems.inventory.aeo
+    const equipment = scripts.systems.equipment.aeo
+    if equipment.equipped("main_hand") == "worn_hatchet" { return true }
+    if inventory.has("worn_hatchet", 1) == false {
+        if inventory.add("worn_hatchet", 1) == false { return false }
+    }
+    return equipment.equip("main_hand", "worn_hatchet")
+}
+
+fn accept() {
+    if stage() > 0 { return true }
+    if grant_hatchet() == false {
+        event.fire("hearthvale_system_message", "Make one inventory slot for the forester's hatchet.")
+        return false
+    }
+    save.set(stage_key, 1)
+    save.commit()
+    event.fire("hearthvale_roots_changed", 1)
+    event.fire("hearthvale_journal_changed")
+    event.fire("hearthvale_system_message", "Worn hatchet equipped. Inspect the three marked trees.")
+    return true
+}
+
+fn inspect_tree(node_id, condition) {
+    if stage() != 1 { return false }
+    const key = "hearthvale.quest.roots_beneath_wall.tree." + node_id
+    if save.has(key) {
+        event.fire("hearthvale_system_message", "You have already recorded this tree.")
+        return true
+    }
+    const next_count = inspected_count() + 1
+    save.set(key, true)
+    save.set(inspected_key, next_count)
+    if condition == "ward_ash" {
+        save.set(ward_ash_key, true)
+        event.fire("hearthvale_system_message", "Grey ward-ash veins the heartwood. This tree must not be cut.")
+    } else if condition == "hollow" {
+        event.fire("hearthvale_system_message", "The trunk is hollow and unsafe. Leave it standing.")
+    } else {
+        event.fire("hearthvale_system_message", "The grain is straight and sound. This tree can be harvested.")
+    }
+    if next_count >= 3 {
+        save.set(stage_key, 2)
+    }
+    save.commit()
+    event.fire("hearthvale_roots_changed", stage())
+    event.fire("hearthvale_journal_changed")
+    return true
+}
+
+fn objective() {
+    const current = stage()
+    if current == 0 { return "Speak to Rowan, Hearthvale's forester, in the craft quarter." }
+    if current == 1 { return "Inspect three marked trees along the safe Oldwood trail. (" + inspected_count() + "/3)" }
+    if current == 2 { return "Equip the worn hatchet and gather five common logs. (" + scripts.systems.inventory.aeo.count("common_log") + "/5)" }
+    if current == 3 { return "Use the town sawbench to make three common planks. (" + scripts.systems.inventory.aeo.count("common_plank") + "/3)" }
+    if current == 4 { return "Return to Rowan with the planks and news of the ward-ash." }
+    return "The north postern stands repaired. The deeper Oldwood trail is open."
+}
+
+fn complete_repair() {
+    if stage() != 4 || found_ward_ash() == false { return false }
+    const inventory = scripts.systems.inventory.aeo
+    const skills = scripts.systems.skills.aeo
+    if inventory.has("common_plank", 3) == false { return false }
+    const old_woodcutting = skills.level("woodcutting")
+    const old_carpentry = skills.level("carpentry")
+    if inventory.stage_remove("common_plank", 3) == false { return false }
+    if skills.stage_add_xp("woodcutting", 30) == false { return false }
+    if skills.stage_add_xp("carpentry", 40) == false { return false }
+    save.set(stage_key, 5)
+    save.commit()
+    inventory.notify_changed("common_plank")
+    skills.notify_changed("woodcutting", old_woodcutting)
+    skills.notify_changed("carpentry", old_carpentry)
+    event.fire("hearthvale_roots_changed", 5)
+    event.fire("hearthvale_journal_changed")
+    event.fire("hearthvale_system_message", "The north postern is repaired. The deeper Oldwood trail is open.")
+    return true
+}
+
+on hearthvale_resource_gathered(resource_id, item_id) {
+    if stage() == 2 && resource_id == "common_tree" && item_id == "common_log" {
+        if scripts.systems.inventory.aeo.count("common_log") >= 5 {
+            set_stage(3)
+            event.fire("hearthvale_system_message", "Five sound logs gathered. Take them to the sawbench.")
+        } else {
+            event.fire("hearthvale_journal_changed")
+        }
+    }
+}
+
+on hearthvale_recipe_completed(recipe_id, output_id) {
+    if stage() == 3 && recipe_id == "saw_common_plank" && output_id == "common_plank" {
+        if scripts.systems.inventory.aeo.count("common_plank") >= 3 {
+            set_stage(4)
+            event.fire("hearthvale_system_message", "Three planks are ready. Rowan needs your report.")
+        } else {
+            event.fire("hearthvale_journal_changed")
+        }
+    }
+}

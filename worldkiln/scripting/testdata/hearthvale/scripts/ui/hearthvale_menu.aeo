@@ -1,0 +1,169 @@
+menu_open: bool = false
+active_tab: string = "inventory"
+
+const viewport = ui.get_viewport_size()
+const panel = ui.new("Panel")
+panel.key = "hearthvale_game_menu"
+panel.anchor = "TopLeft"
+panel.position = [80, 72]
+panel.size = [viewport[0] - 160, viewport[1] - 144]
+panel.color = [0.035, 0.028, 0.023, 0.97]
+panel.border_color = [0.72, 0.43, 0.16, 1]
+panel.border_width = 2
+panel.visible = false
+
+const heading = ui.new("Text")
+heading.key = "hearthvale_menu_heading"
+heading.anchor = "TopLeft"
+heading.position = [110, 96]
+heading.size = [viewport[0] - 220, 42]
+heading.font_size = 24
+heading.text = "HEARTHVALE JOURNAL"
+heading.color = [0.95, 0.75, 0.42, 1]
+heading.visible = false
+
+const tabs = ui.new("Text")
+tabs.key = "hearthvale_menu_tabs"
+tabs.anchor = "TopLeft"
+tabs.position = [110, 146]
+tabs.size = [viewport[0] - 220, 34]
+tabs.font_size = 16
+tabs.text = "[1] INVENTORY     [2] SKILLS     [3] QUESTS     [4] EQUIPMENT     [TAB] CLOSE"
+tabs.color = [0.82, 0.78, 0.67, 1]
+tabs.visible = false
+
+const section = ui.new("Text")
+section.key = "hearthvale_menu_section"
+section.anchor = "TopLeft"
+section.position = [115, 202]
+section.size = [viewport[0] - 230, 38]
+section.font_size = 20
+section.color = [0.95, 0.75, 0.42, 1]
+section.visible = false
+
+const content = ui.new("Text")
+content.key = "hearthvale_menu_content"
+content.anchor = "TopLeft"
+content.position = [115, 252]
+content.size = [viewport[0] - 230, viewport[1] - 350]
+content.font_size = 17
+content.horizontal_align = "Left"
+content.vertical_align = "Top"
+content.wrap = true
+content.line_spacing = 5
+content.color = [0.94, 0.92, 0.85, 1]
+content.visible = false
+
+const system_message = ui.new("Text")
+system_message.key = "hearthvale_system_message"
+system_message.anchor = "TopCenter"
+system_message.position = [-340, 72]
+system_message.size = [680, 42]
+system_message.font_size = 17
+system_message.horizontal_align = "Center"
+system_message.vertical_align = "Center"
+system_message.color = [1, 0.82, 0.42, 1]
+system_message.visible = false
+
+fn refresh() {
+    if active_tab == "inventory" {
+        section.text = "INVENTORY  /  " + scripts.systems.inventory.aeo.occupied_slots() + " OF 28 SLOTS"
+        content.text = scripts.systems.inventory.aeo.summary(28)
+        return
+    }
+    if active_tab == "skills" {
+        section.text = "SKILLS"
+        content.text = scripts.systems.skills.aeo.summary()
+        return
+    }
+    if active_tab == "quests" {
+        section.text = "QUEST JOURNAL"
+        content.text = scripts.quests.journal.aeo.active_title() + "\n\n" + scripts.quests.journal.aeo.active_objective() + "\n\nCompleted milestones permanently change Hearthvale and open new routes, services, and recipes."
+        return
+    }
+    section.text = "EQUIPMENT"
+    const main_hand = scripts.systems.equipment.aeo.equipped("main_hand")
+    if main_hand == nil {
+        content.text = "Main hand: Empty\nOff hand: Empty\nHead: Empty\nBody: Empty\nLegs: Empty\nFeet: Empty\nBack: Empty"
+    } else {
+        content.text = "Main hand: " + scripts.data.items.aeo.display_name(main_hand) + "\nOff hand: Empty\nHead: Empty\nBody: Empty\nLegs: Empty\nFeet: Empty\nBack: Empty"
+    }
+}
+
+fn set_open(open) {
+    menu_open = open
+    panel.visible = open
+    heading.visible = open
+    tabs.visible = open
+    section.visible = open
+    content.visible = open
+    if open {
+        refresh()
+    }
+}
+
+fn is_open() {
+    return menu_open
+}
+
+fn show_message(message) {
+    system_message.text = message
+    system_message.visible = true
+}
+
+on.keypress(key, down) {
+    if down == false {
+        return
+    }
+    if key == "Tab" {
+        set_open(menu_open == false)
+        return
+    }
+    if menu_open == false {
+        return
+    }
+    if key == "1" {
+        active_tab = "inventory"
+        refresh()
+    } else if key == "2" {
+        active_tab = "skills"
+        refresh()
+    } else if key == "3" {
+        active_tab = "quests"
+        refresh()
+    } else if key == "4" {
+        active_tab = "equipment"
+        refresh()
+    } else if key == "Escape" || key == "Q" {
+        set_open(false)
+    }
+}
+
+on hearthvale_inventory_changed(item_id, quantity) {
+    if menu_open { refresh() }
+}
+
+on hearthvale_equipment_changed(slot_id, item_id) {
+    if menu_open { refresh() }
+}
+
+on hearthvale_skill_xp_changed(skill_id, total_xp, level) {
+    if menu_open { refresh() }
+}
+
+on hearthvale_skill_level_up(skill_id, old_level, new_level) {
+    show_message(scripts.systems.skills.aeo.display_name(skill_id) + " reached level " + new_level + "!")
+    if menu_open { refresh() }
+}
+
+on hearthvale_quest_changed(phase) {
+    if menu_open { refresh() }
+}
+
+on hearthvale_journal_changed() {
+    if menu_open { refresh() }
+}
+
+on hearthvale_system_message(message) {
+    show_message(message)
+}

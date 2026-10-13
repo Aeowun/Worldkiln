@@ -1,0 +1,99 @@
+// One key event routes to nearby authored Actors; no per-frame polling.
+on.keypress(key, down) {
+    if down == false {
+        return
+    }
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    const steward_talk = scripts.dialogue.steward_conversation.aeo
+    const innkeeper_talk = scripts.dialogue.innkeeper_conversation.aeo
+    const blacksmith_talk = scripts.dialogue.blacksmith_conversation.aeo
+    const forester_talk = scripts.dialogue.forester_conversation.aeo
+    const fisher_talk = scripts.dialogue.fisher_conversation.aeo
+    if key == "Q" && presenter.is_open() {
+        presenter.close()
+        return
+    }
+    if key != "E" {
+        return
+    }
+    if steward_talk.is_open() {
+        steward_talk.advance()
+        return
+    }
+    if innkeeper_talk.is_open() {
+        innkeeper_talk.advance()
+        return
+    }
+    if blacksmith_talk.is_open() {
+        blacksmith_talk.advance()
+        return
+    }
+    if forester_talk.is_open() {
+        forester_talk.advance()
+        return
+    }
+    if fisher_talk.is_open() {
+        fisher_talk.advance()
+        return
+    }
+    const here = player.position
+    const steward = proj.find("StewardEdrin")
+    if steward != nil {
+        const p = steward.position
+        const dx = here[0] - p[0]
+        const dz = here[2] - p[2]
+        if dx * dx + dz * dz < 20 {
+            steward_talk.show()
+            return
+        }
+    }
+    const innkeeper = proj.find("InnkeeperMara")
+    if innkeeper != nil {
+        const p = innkeeper.position
+        const dx = here[0] - p[0]
+        const dz = here[2] - p[2]
+        if dx * dx + dz * dz < 20 {
+            innkeeper_talk.show()
+            return
+        }
+    }
+    const key_actor = proj.find("WatchBeaconKey")
+    const blacksmith = proj.find("BlacksmithTorren")
+    if blacksmith != nil {
+        const p = blacksmith.position
+        const dx = here[0] - p[0]
+        const dz = here[2] - p[2]
+        if dx * dx + dz * dz < 20 {
+            blacksmith_talk.show()
+            return
+        }
+    }
+    const forester = proj.find("ForesterRowan")
+    if forester != nil {
+        const p = forester.position
+        const dx = here[0] - p[0]
+        const dz = here[2] - p[2]
+        if dx * dx + dz * dz < 20 {
+            forester_talk.show()
+            return
+        }
+    }
+    const fisher = proj.find("FisherElowen")
+    if fisher != nil {
+        const p = fisher.position
+        const dx = here[0] - p[0]
+        const dz = here[2] - p[2]
+        if dx * dx + dz * dz < 20 {
+            fisher_talk.show()
+            return
+        }
+    }
+    if key_actor != nil && key_actor.visible {
+        const p = key_actor.position
+        const dx = here[0] - p[0]
+        const dz = here[2] - p[2]
+        if dx * dx + dz * dz < 12 {
+            scripts.collectable.watch_key.aeo.try_collect()
+        }
+    }
+}

@@ -1,0 +1,23 @@
+// Actor-attached navigation: one destination at a time, callback-driven.
+const steward = self.parent
+heading_out: bool = true
+
+fn walk_next() {
+    if heading_out {
+        heading_out = false
+        steward.navigate_to([-12, 1, -11], 1.2, 0.35)
+    } else {
+        heading_out = true
+        steward.navigate_to([-15, 1, -11], 1.2, 0.35)
+    }
+}
+
+steward.on_navigation_finished = fn() {
+    walk_next()
+}
+
+steward.on_navigation_failed = fn(reason) {
+    debug.log("Steward patrol paused: " + reason)
+}
+
+walk_next()

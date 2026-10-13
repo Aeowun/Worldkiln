@@ -1,0 +1,9 @@
+// The marker contributes only authored location and resource identity.
+const fishing_post = self.parent
+fishing_post.attributes["interaction_kind"] = "fish"
+fishing_post.attributes["resource_id"] = "apple_pond_trout"
+
+on.keypress(key, down) {
+    if down == false || key != "E" { return }
+    scripts.resources.resource_node.aeo.try_gather(fishing_post, "apple_pond_trout", nil)
+}

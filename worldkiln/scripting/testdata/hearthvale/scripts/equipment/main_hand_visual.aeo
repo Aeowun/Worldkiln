@@ -1,0 +1,37 @@
+// One focused presenter owns the visual attached to the player's right hand.
+// Item ownership and equipment state remain in their data/system Modules.
+main_hand_entity: Entity? = nil
+shown_item: string? = nil
+
+fn clear_visual() {
+    if main_hand_entity != nil && main_hand_entity.is_valid() {
+        main_hand_entity.destroy()
+    }
+    main_hand_entity = nil
+    shown_item = nil
+}
+
+fn sync_visual() {
+    const item_id = scripts.systems.equipment.aeo.equipped("main_hand")
+    if item_id == nil || player == nil {
+        clear_visual()
+        return false
+    }
+    if item_id == shown_item && main_hand_entity != nil && main_hand_entity.is_valid() {
+        return true
+    }
+    clear_visual()
+    const package = scripts.data.items.aeo.actor_package(item_id)
+    if package == nil { return false }
+    main_hand_entity = spawn("EquippedMainHand", player.position, package)
+    attach(main_hand_entity, "Grip", player, "RightHand")
+    shown_item = item_id
+    return true
+}
+
+wait(0.1)
+sync_visual()
+
+on hearthvale_equipment_changed(slot_id, item_id) {
+    if slot_id == "main_hand" { sync_visual() }
+}
