@@ -14,6 +14,9 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 - [0.6.x — Editor and AeoScript Foundation](#06x--editor-and-aeoscript-foundation)
 - [0.7.x — Gameplay and Scripting Expansion](#07x--gameplay-and-scripting-expansion)
 - [0.8.0 — UI, Actors, Attachments, and Installation](#080--ui-actors-attachments-and-installation)
+- [0.8.5 — Particle effects and Entity control](#085--particle-effects-and-entity-control-public-release)
+- [More features included in Worldkiln](#more-features-included-in-worldkiln--beta-where-marked)
+- [Hearthvale Expansion](#unreleased--hearthvale-expansion)
 
 ---
 
