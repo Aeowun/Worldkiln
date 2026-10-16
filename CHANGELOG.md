@@ -603,9 +603,9 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 
 ---
 
-## Development builds after 0.8.5 — Significant improvements and additions
+## More features included in Worldkiln — BETA where marked
 
-> These improvements and feature additions are **included in Worldkiln 0.8.5**. Newer or experimental capabilities are available as **BETA features** and may continue to be refined. Fixes and improvements to established functionality are not automatically BETA.
+> **BETA features are included in the engine and available to use.** BETA means they are still being refined, so bugs, limitations, or changes are possible. Established features do not become BETA simply because they receive improvements.
 
 ### Editor and workflow
 
@@ -630,6 +630,28 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 - **Character selection:** no forced robot/hero default; projects can explicitly choose **None** when no valid Character package is available.
 - **Color-only building:** built-in **Block_txt** option returns Cells to an untextured, color-based appearance without requiring an image texture.
 - **Project reliability:** improvements to save/load preservation, save-data editing, script diagnostics, and error isolation.
+
+### Water, materials, and the World
+
+- **Reactive water (BETA):** oceans and shorelines with configurable waves, moving foam, collision-driven ripples and wakes, and wet-looking surfaces that dry after waves recede.
+- **Underwater camera effects (BETA):** camera effects respond to where the moving water surface covers the view, with underwater tint and fog.
+- **Material creation (BETA):** Surface, Water, and Sky materials with saved layers and a Material Editor for shaping how the world looks.
+- **Landscaping (BETA):** terrain generation, sculpt and paint tools, slope and shoreline materials, procedural grass, and water-level controls.
+- **World presentation:** sky, lighting, and distance fog controls that help bring the scene together.
+
+### Characters, assets, and effects
+
+- **Project asset tools (BETA where marked):** fuller Asset Manager and Content Browser workflows, asset-pack discovery, imported 3D packages, and asset assignment by drag-and-drop.
+- **Controllers and cameras (BETA):** create reusable project-owned controllers and camera assets from Project Settings.
+- **Effects (BETA where marked):** particle and effect assets for scenes, with supported editor and script controls.
+
+### Scripting and game creation
+
+- **AeoScript extras (BETA):** terrain surface queries, Actor tags, property-change subscriptions, and supported material animation through tweens.
+- **Script editing:** improved diagnostics, script navigation, and debugging tools for finding gameplay problems.
+- **Standalone games:** updated Build Game packaging for a standalone Windows executable with game data and matching runtime assets.
+
+For how to use these features, see the [Worldkiln User Guide](DIVE.md) and [AeoScript Guide](AEOSCRIPT.md). The feature list describes what's available, not a promise that every BETA feature is perfect.
 
 ---
 
