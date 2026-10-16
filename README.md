@@ -33,11 +33,8 @@ Import 3D models, place Actors, and bring animated characters into your world. A
 AeoScript is Worldkiln's built-in gameplay language. Create player controls, cameras, interactions, events, UI, sound, and game logic using `.aeo` scripts—without leaving your project.
 
 ```aeoscript
-debug.log("Welcome to my world!")
-
-on on_touch(other) {
-    debug.log("Something touched this object!")
-}
+const greeting = "Welcome to my world!"
+debug.log(greeting)
 ```
 
 **[Explore AeoScript](AEOSCRIPT.md)** · [AeoScript documentation](https://aeowun.com/aeoscript/)
