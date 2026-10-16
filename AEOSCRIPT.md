@@ -1,6 +1,6 @@
 # AeoScript Language Overview
 
-> **Worldkiln:** v0.8.5
+> **Worldkiln:** AeoScript is included in the Windows engine, including features labeled BETA.
 > **AeoScript:** v1.1.2  
 > **Former engine name:** AeoEngine
 
@@ -159,9 +159,7 @@ can subsequently update. Maps and other objects can still support their
 documented dynamic properties; the rule concerns assigning a bare variable
 name.
 
-**Compatibility:** This declaration requirement describes the current
-development language behavior. Older released editor builds may still accept
-implicit top-level declarations until the next Worldkiln update.
+This declaration requirement applies to current AeoScript. Declare a variable before using it; use plain assignment only to change an existing value.
 
 ## Numbers
 
@@ -924,7 +922,7 @@ wait(...)
 time.delta
 ```
 
-See `AeoScript_API.md` and `AeoScript_STDLIB.md` for complete API references.
+For current API names and examples, see the [AeoScript reference](https://aeowun.com/aeoscript/) and [Worldkiln documentation](https://aeowun.com/docs/).
 
 ---
 
@@ -971,21 +969,32 @@ Diagnostics can include the script, function, source location, and related objec
 
 ---
 
-# 31. Language Direction
+# 31. Terrain, Actor Tags, and Material Animation
 
-AeoScript is intended to remain:
+Worldkiln includes additional AeoScript tools for games that use Landscaping, dynamic scenes, and responsive materials. These tools are available as **BETA** features: you can use them, but their behavior and supported properties may continue to improve.
 
-- Small enough to learn.
-- General enough for gameplay.
-- Closely integrated with Worldkiln.
-- Useful for both simple scripts and larger gameplay systems.
-- Safe when working with engine-managed objects.
-- Capable of pausing and resuming gameplay logic with `wait()`.
+## Terrain
 
-Top-level scripts remain the simplest way to create broad gameplay systems.
+Supported terrain APIs include `terrain.generate(position, size)` and `terrain.set_voxels(...)` for creating or updating terrain during gameplay. Terrain can also be queried to learn about a surface beneath a point, including details such as its height, normal, slope, and material where supported.
 
-Entity scripts are available when behavior needs dedicated per-object state and lifecycle functions.
+Terrain generation and updates are bounded by Worldkiln's safety limits. For most projects, create the main environment in the Landscaping workspace and use terrain scripting for game-driven changes.
 
-Modules provide reusable logic without requiring specialized APIs for every type of game system.
+## Actor tags and property changes
 
-The language should grow around real Worldkiln workflows rather than accumulating APIs without a clear use.
+Runtime Actor tags help scripts identify related Actors without relying only on names. Supported property-change subscriptions can run a callback when a watched property changes. Cancel subscriptions when you no longer need them; Worldkiln also cleans them up when their owning objects leave the runtime.
+
+## Material animation
+
+The BETA `engine.tweens.create` API animates supported runtime properties over time. Material-layer alpha is one supported property, allowing gameplay scripts to create transitions in an authored Material. Invalid targets or unsupported properties are rejected rather than silently changing unrelated data.
+
+Exact supported names and arguments depend on the current AeoScript API reference. Use the Script Editor and [AeoScript reference](https://aeowun.com/aeoscript/) when working with these features.
+
+---
+
+# 32. Choose a Scripting Style
+
+Use **top-level scripts** for game-wide behavior and shared systems. Use **Entity scripts** for behavior tied to a particular object. Use **Modules** for reusable functions and state that more than one script can share.
+
+AeoScript is designed to stay close to the World you are building, whether you're making a single interactive door or a larger adventure.
+
+**BETA means included and usable.** It does not mean the feature is missing from the engine. Save backups of important projects when trying new or changing features.
