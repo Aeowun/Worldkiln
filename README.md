@@ -2,7 +2,7 @@
 
 **Worldkiln is a Windows game engine and editor for creating 3D games.** Build with Cells, sculpt landscapes, import 3D assets, script gameplay in AeoScript, and package standalone Windows games.
 
-[Download](https://github.com/Aeowun/Worldkiln/releases) · [Getting started](https://aeowun.com/worldkiln/getting-started/) · [Documentation](https://aeowun.com/docs/) · [AeoScript](AEOSCRIPT.md)
+[Download](https://github.com/Aeowun/Worldkiln/releases) · [Features](FEATURES.md) · [Gallery](SHOWCASE.md) · [Getting started](https://aeowun.com/worldkiln/getting-started/) · [Documentation](https://aeowun.com/docs/) · [AeoScript](AEOSCRIPT.md)
 
 ![The Worldkiln editor](SCREENSHOTS/02-editor-overview.png)
 
@@ -14,7 +14,7 @@
 - **Gameplay:** Write AeoScript for input, interactions, physics, navigation, UI, audio, and cameras.
 - **Editing and testing:** Manage project assets, build interfaces, and test gameplay in Play mode before creating a standalone game.
 
-See the [feature overview](FEATURES.md) for more detail.
+Explore the [full feature catalogue](FEATURES.md) or [see scenes built in Worldkiln](SHOWCASE.md).
 
 ## Getting Worldkiln
 
