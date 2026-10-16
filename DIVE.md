@@ -4,7 +4,7 @@
 
 Worldkiln lets you build environments, place characters and objects, create gameplay, and turn your work into a standalone Windows game. You can work visually in the editor and use **AeoScript** when you want to make things move, react, and behave.
 
-[Download Worldkiln](https://github.com/Aeowun/Worldkiln/releases) · [Getting Started](https://aeowun.com/worldkiln/getting-started/) · [AeoScript](AEOSCRIPT.md) · [Documentation](https://aeowun.com/docs/)
+[Download Worldkiln](https://github.com/Aeowun/Worldkiln/releases) · [Explore Features](FEATURES.md) · [Getting Started](https://aeowun.com/worldkiln/getting-started/) · [AeoScript](AEOSCRIPT.md) · [Documentation](https://aeowun.com/docs/)
 
 > **About BETA:** A BETA feature is **included in Worldkiln and available to use**. It may still have rough edges, bugs, or changes to how it works. BETA is a maturity label—not a promise that a feature will arrive in a later download.
 
