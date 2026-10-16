@@ -10,7 +10,7 @@ Worldkiln is a game engine and visual editor for Windows. Shape landscapes, buil
 
 From a quiet island to an adventure full of moving parts, Worldkiln gives you the tools to create something that's yours.
 
-**[Download Worldkiln](https://github.com/Aeowun/Worldkiln/releases)** · **[Getting Started](https://aeowun.com/worldkiln/getting-started/)** · **[Documentation](https://aeowun.com/docs/)**
+**[Download Worldkiln](https://github.com/Aeowun/Worldkiln/releases)** · **[Explore Features](FEATURES.md)** · **[Getting Started](https://aeowun.com/worldkiln/getting-started/)** · **[Documentation](https://aeowun.com/docs/)**
 
 ---
 
@@ -76,7 +76,7 @@ For a guided introduction, visit [Getting Started](https://aeowun.com/worldkiln/
 
 ## More from Worldkiln
 
-[**Documentation**](https://aeowun.com/docs/) · [**AeoScript Guide**](AEOSCRIPT.md) · [**Changelog**](CHANGELOG.md) · [**Founding Developer Program**](FOUNDING_DEVELOPERS.md) · [**Support**](https://aeowun.com/support/) · [**Support Worldkiln on Ko-fi**](https://ko-fi.com/aeowun/tip)
+[**Features**](FEATURES.md) · [**User Guide**](DIVE.md) · [**Documentation**](https://aeowun.com/docs/) · [**AeoScript Guide**](AEOSCRIPT.md) · [**Changelog**](CHANGELOG.md) · [**Founding Developer Program**](FOUNDING_DEVELOPERS.md) · [**Support**](https://aeowun.com/support/) · [**Support Worldkiln on Ko-fi**](https://ko-fi.com/aeowun/tip)
 
 ---
 
