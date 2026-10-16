@@ -35,8 +35,8 @@ AeoScript files can contain executable code directly at the top level.
 ```aeoscript
 debug.log("Game script loaded")
 
-gold: number = 0
-max_enemies: number = 20
+const gold = 0
+const max_enemies = 20
 ```
 
 Top-level code runs when the script starts.
