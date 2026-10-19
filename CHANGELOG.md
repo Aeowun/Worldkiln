@@ -4,21 +4,6 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 
 > Worldkiln is the current product name. Historical release entries retain AeoEngine where that was the product name at the time.
 
-## In development — Worldkiln 0.9.x / 1.0
-
-> **Not released.** Worldkiln **0.8.5 remains the current public release**. The 0.8.7 release candidate is not yet approved for publication as the next installer.
-
-### Major features in development
-
-- **Canonical Asset Management:** one project-owned asset registry shared by Asset Manager, Content Browser and runtime, with persistent asset identities, consistent categories, and dependency-aware management.
-- **Expanded GLB and Character workflow:** one imported GLB becomes one Actor regardless of mesh count; compatible rigged and animated Actors can be used to create separately configured Characters. Project-installed AssetPacks and external GLB imports follow the same asset inventory.
-- **Terrain and water development:** expanded landscaping and terrain-reconstruction workflows, alongside ongoing nearshore water and shoreline-interaction development.
-- **Native effects authoring:** continued development of project-owned effects and the native FX editor.
-
-These entries describe substantial development milestones, **not functionality confirmed in a publicly released build**. Detailed engineering history remains in the development repository.
-
----
-
 ## Contents
 
 - [0.1.x — Foundation](#01x--foundation)
@@ -618,6 +603,21 @@ These entries describe substantial development milestones, **not functionality c
 ### Improved
 
 - Continued the Worldkiln product rename across the editor and scripting integration while retaining compatibility with existing AeoScript projects and stored data.
+
+---
+
+## 0.9.x — Asset Management and World Authoring
+
+### Added
+
+- **Unified Asset Manager and Content Browser:** Browse Actors, Characters, Controllers, Cameras, Textures, Materials, Images, Video, Audio, Effects, and Scripts in one project asset inventory.
+- **GLB Actor importing:** Import GLB models as Actors, including multi-mesh models. Create Characters from compatible rigged or animated Actors and configure their controllers and cameras.
+- **AssetPack importing:** Install selected AssetPacks or import external models and supported media into a project.
+- **Asset previews and inspection:** Preview models and images, inspect geometry and animations, and view material references and missing dependencies.
+- **Asset organization and management:** Rename and group assets, replace resources, and check references before deletion.
+- **Terrain reconstruction:** Reconstruct terrain from corrupted heightmaps, preview results, and adjust reconstruction controls.
+- **Water and shorelines:** Expanded shoreline wash, water interaction, foam, and wave controls.
+- **Native effects authoring:** Create and edit project effects with native emitter tools.
 
 ---
 
