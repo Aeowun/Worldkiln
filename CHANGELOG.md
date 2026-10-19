@@ -623,8 +623,6 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 
 ## More features included in Worldkiln — BETA where marked
 
-> **BETA features are included in the engine and available to use.** BETA means they are still being refined, so bugs, limitations, or changes are possible. Established features do not become BETA simply because they receive improvements.
-
 ### Editor and workflow
 
 - **Redesigned editor workspace:** cleaner Home viewport, dedicated Script, UI and Terrain workspaces, contextual Properties, direct Project Settings access, and a searchable feature directory.
@@ -669,7 +667,7 @@ Development history for Worldkiln (formerly AeoEngine) and AeoScript.
 - **Script editing:** improved diagnostics, script navigation, and debugging tools for finding gameplay problems.
 - **Standalone games:** updated Build Game packaging for a standalone Windows executable with game data and matching runtime assets.
 
-For how to use these features, see the [Worldkiln User Guide](DIVE.md) and [AeoScript Guide](AEOSCRIPT.md). The feature list describes what's available, not a promise that every BETA feature is perfect.
+For instructions, see the [Worldkiln User Guide](DIVE.md) and [AeoScript Guide](AEOSCRIPT.md).
 
 ---
 
