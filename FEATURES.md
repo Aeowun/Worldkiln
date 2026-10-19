@@ -20,6 +20,18 @@ Import **GLB models** and place them as Actors. Arrange and transform props, con
 
 The **Asset Manager** and **Content Browser** organize models, textures, audio, media, scripts, and project assets. Asset fields support drag-and-drop where available in the editor.
 
+### Worldkiln 1.0 asset management — in development
+
+The upcoming asset-management system uses **one project-owned asset registry**, so Asset Manager, Content Browser, and runtime share persistent asset identities. Assets appear in consistent categories rather than being organized according to the source folder used to import them.
+
+- **One GLB, one Actor:** a model with multiple meshes remains a single Actor. Compatible rigged or animated Actors can be configured as Characters separately.
+- **Project-owned imports:** install chosen AssetPacks or import external GLBs and supported media into the project, without requiring shared pack caches at runtime.
+- **Consistent browsing:** previews, selection, inspection and dependencies refer to the same registered assets across both interfaces.
+- **Creator-controlled organization:** optional custom groups do not change asset identity or type.
+- **Asset management:** import review, missing-resource reporting, replacement and dependency-aware removal are part of the developing workflow.
+
+**This is work toward Worldkiln 1.0, not a feature list for the current 0.8.5 public release.** The 0.8.7 release candidate is not yet approved as the next public executable.
+
 ## Gameplay
 
 **AeoScript** connects gameplay to the World: object queries, input, events, movement, camera control, UI, audio, animation, and game state. Scripts can be reused as Modules or attached to game objects.
