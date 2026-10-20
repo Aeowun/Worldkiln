@@ -1,6 +1,6 @@
 # Worldkiln
 
-**Worldkiln is a simple Windows game engine and editor for easily creating small 3D games.** Build with Cells, sculpt landscapes, import 3D assets, script gameplay in AeoScript, and package standalone Windows games.
+**Worldkiln is a Windows game engine and 3D editor.** Build scenes with Cells, shape landscapes, import 3D assets, create interfaces, script gameplay in AeoScript, and build standalone Windows games.
 
 [Download](https://github.com/Aeowun/Worldkiln/releases) · [Getting started](https://aeowun.com/worldkiln/getting-started/) · [Documentation](https://aeowun.com/docs/) · [AeoScript](AEOSCRIPT.md)
 
@@ -9,10 +9,10 @@
 ## Features
 
 - **World building:** Construct with Cells or sculpt and paint larger landscapes. Set up materials, lighting, skies, and fog.
-- **Reactive water (BETA):** Directional waves, collision-driven ripples and wakes, shoreline foam, wet sand, and underwater camera effects.
+- **Water:** Animated waves, collision-driven ripples and wakes, foam, and underwater camera effects.
 - **Actors and animation:** Import GLB models, arrange props, and work with animated Characters.
 - **Gameplay:** Write AeoScript for input, interactions, physics, navigation, UI, audio, and cameras.
-- **Editing and testing:** Manage project assets, build interfaces, and test gameplay in Play mode before creating a standalone game.
+- **Editing and testing:** Organize assets and scripts, design game interfaces, and test the scene in Play mode before building a standalone game.
 
 See the [feature overview](FEATURES.md) for more detail.
 
@@ -20,7 +20,7 @@ See the [feature overview](FEATURES.md) for more detail.
 
 Worldkiln runs on **Windows 10 and 11**. Download Worldkiln **0.8.5** for Windows from [Releases](https://github.com/Aeowun/Worldkiln/releases/tag/win11-v0.8.5).
 
-Open Worldkiln, create a project, and start building in the editor. The [getting started guide](https://aeowun.com/worldkiln/getting-started/) covers the first project.
+Open Worldkiln, select **New Project** on Home, and open the project in the editor. Use **Build** to place Cells, **Landscaping** to shape terrain, and **Play** to test your world. Follow the [getting started guide](https://aeowun.com/worldkiln/getting-started/) for the complete walkthrough.
 
 ## Documentation
 
