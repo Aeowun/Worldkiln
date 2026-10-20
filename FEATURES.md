@@ -8,17 +8,17 @@ Worldkiln combines a 3D world editor, AeoScript gameplay, and standalone Windows
 
 **Cells** are Worldkiln's building pieces for structures, platforms, interiors, and detailed objects. Place, erase, select, transform, and edit them directly in the viewport.
 
-**Landscaping (BETA)** provides terrain generation, sculpting, smoothing, flattening, and material painting. Combine landscape layers with shorelines and atmospheric settings.
+**Landscaping** provides terrain generation, sculpting, smoothing, flattening, and material painting. Organize generated landscape layers and adjust the environment around them.
 
-**Water (BETA)** responds to the scene: animated waves, collision-driven ripples and wakes, shoreline wash and foam, surface wetness, and a camera effect that follows the water surface when submerged.
+**Water** combines animated waves with collision-driven ripples, wakes, foam, and underwater camera effects. Set up oceans, lakes, and rivers with their own water settings.
 
-**Materials and lighting** control the look of Cells, Actors, landscapes, skies, and water. Distance fog and particle effects add atmosphere. Newer material-authoring tools are marked BETA.
+**Materials and lighting** control the look of Cells, Actors, landscapes, skies, and water. Distance fog and particle effects add atmosphere.
 
 ## Actors and assets
 
 Import **GLB models** and place them as Actors. Arrange and transform props, configure collisions, and use animated Character packages.
 
-The **Asset Manager** and **Content Browser** organize models, textures, audio, media, scripts, and project assets. Asset fields support drag-and-drop where available in the editor.
+The **Asset Manager** and **Content Browser** organize models, textures, audio, media, AeoScript files, and other project assets. Drag supported assets into the scene or select them for editing.
 
 ### Asset Manager and Content Browser
 
