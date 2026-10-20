@@ -14,7 +14,7 @@ Open Worldkiln, create a project from Home, and open it in the editor. Existing 
 
 Use the **Build** tools to place and edit **Cells** for floors, walls, platforms, and structures. Select a Cell to change its properties. Use Undo and Redo to revise an edit.
 
-For an outdoor scene, open **Terrain** to generate land and **Landscaping** to sculpt or paint it. Adjust water, materials, lighting, sky, and fog to establish the environment.
+For an outdoor scene, open **Terrain** to generate land and **Landscaping** to sculpt or paint it. Adjust waves, water bodies, materials, lighting, sky, and fog to establish the environment.
 
 Use the **Project Explorer** to organize scene objects and scripts. The **Properties** panel edits the current selection; the **Content Browser** provides assets for the scene.
 
@@ -24,15 +24,15 @@ Open the **Asset Manager** to import project files or browse asset packs. Worldk
 
 Drag an Actor into the scene, then move, rotate, and scale it. Configure collision and other Actor properties before testing in Play mode.
 
-Character and Camera Controllers are managed in **Project Settings**. Choose a compatible Character package and configure its animations and controller.
+Choose a compatible Character package, then configure its animations, Controller, and Camera in **Project Settings**.
 
 ## Add gameplay
 
-Open the **Script** workspace and create a `.aeo` script. AeoScript handles input, events, Actors, Cells, UI, sound, cameras, and gameplay state.
+Open the **Script Editor** and create a `.aeo` project script. AeoScript handles input, events, Actors, Cells, UI, sound, cameras, and gameplay state.
 
 Use the [AeoScript guide](AEOSCRIPT.md) for a working event example. The [API reference](https://aeowun.com/docs/reference/) lists exact signatures and return values.
 
-For on-screen interfaces, open the **UI** workspace. Create Panels, Text, and Buttons, then connect their behavior to scripts.
+For on-screen interfaces, open the **UI Editor**. Create Panels, Text, and Buttons, assign script keys to interactive elements, and connect their behavior to AeoScript.
 
 ![UI authoring in Worldkiln](SCREENSHOTS/39-ui-editor-workspace.png)
 
