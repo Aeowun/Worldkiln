@@ -23,7 +23,7 @@ Start **Play** and open **Output** to inspect the result. The event handler rece
 
 ## Variables and functions
 
-Use `const` for bindings that do not change. Mutable variables are declared with a name and type; plain assignment updates an existing variable.
+Use `const` for bindings that cannot be reassigned. Mutable variables can be declared with an initializer or an explicit type; later assignments change their values.
 
 ```aeoscript
 const BONUS = 5
@@ -80,7 +80,7 @@ if door != nil {
 
 Worldkiln exposes APIs for [finding objects](https://aeowun.com/aeoscript/find/), [input](https://aeowun.com/aeoscript/input/), [UI](https://aeowun.com/aeoscript/ui/), [audio](https://aeowun.com/aeoscript/audio/), [events](https://aeowun.com/aeoscript/events/), and game systems in the [API reference](https://aeowun.com/docs/reference/).
 
-Newer **BETA** APIs include Actor tags, property-change observers, Terrain surface queries, and selected Material animations.
+For the supported object, Terrain, and Material APIs, consult the [API reference](https://aeowun.com/docs/reference/) for the exact function names and usage.
 
 ## Saving game state
 
