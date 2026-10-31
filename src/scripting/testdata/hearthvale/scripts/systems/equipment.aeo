@@ -1,0 +1,89 @@
+fn valid_slot(slot_id) {
+    return slot_id == "main_hand" || slot_id == "off_hand" || slot_id == "head" || slot_id == "body" || slot_id == "legs" || slot_id == "feet" || slot_id == "back"
+}
+
+fn save_key(slot_id) {
+    return "hearthvale.equipment.slot." + slot_id
+}
+
+fn equipped(slot_id) {
+    if valid_slot(slot_id) == false {
+        return nil
+    }
+    return save.get(save_key(slot_id))
+}
+
+fn has_tool(tool_tag) {
+    const items = scripts.data.items.aeo
+    const main_hand = equipped("main_hand")
+    return main_hand != nil && items.tool_tag(main_hand) == tool_tag
+}
+
+fn stage_equip(slot_id, item_id) {
+    const items = scripts.data.items.aeo
+    const inventory = scripts.systems.inventory.aeo
+    if valid_slot(slot_id) == false || items.equipment_slot(item_id) != slot_id {
+        return false
+    }
+    const current = equipped(slot_id)
+    if current == item_id {
+        return true
+    }
+    if inventory.has(item_id, 1) == false {
+        return false
+    }
+    // Removing the incoming non-stackable item frees the slot needed by the
+    // outgoing item, so a direct swap is valid even when the pack is full.
+    if inventory.stage_remove(item_id, 1) == false {
+        return false
+    }
+    if current != nil && inventory.stage_add(current, 1) == false {
+        return false
+    }
+    save.set(save_key(slot_id), item_id)
+    return true
+}
+
+fn stage_unequip(slot_id) {
+    const current = equipped(slot_id)
+    if current == nil {
+        return true
+    }
+    if scripts.systems.inventory.aeo.stage_add(current, 1) == false {
+        return false
+    }
+    save.remove(save_key(slot_id))
+    return true
+}
+
+fn notify_changed(slot_id, previous_item) {
+    const inventory = scripts.systems.inventory.aeo
+    const current = equipped(slot_id)
+    if previous_item != nil {
+        inventory.notify_changed(previous_item)
+    }
+    if current != nil {
+        inventory.notify_changed(current)
+    }
+    event.fire("hearthvale_equipment_changed", slot_id, current)
+}
+
+fn equip(slot_id, item_id) {
+    const previous = equipped(slot_id)
+    if stage_equip(slot_id, item_id) == false {
+        return false
+    }
+    save.commit()
+    notify_changed(slot_id, previous)
+    return true
+}
+
+fn unequip(slot_id) {
+    const previous = equipped(slot_id)
+    if stage_unequip(slot_id) == false {
+        return false
+    }
+    save.commit()
+    notify_changed(slot_id, previous)
+    return true
+}

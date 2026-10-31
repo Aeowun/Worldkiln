@@ -1,0 +1,5 @@
+// Actor-authored identity stays separate from conversation and quest state.
+const fisher = self.parent
+fisher.attributes["role"] = "Fisher of Apple Pond"
+fisher.attributes["home"] = "Apple Pond"
+fisher.attributes["dialogue"] = "fisher_conversation"

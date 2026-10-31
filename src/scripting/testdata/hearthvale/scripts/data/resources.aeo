@@ -1,0 +1,50 @@
+fn exists(resource_id) {
+    return resource_id == "common_tree" || resource_id == "apple_pond_trout"
+}
+
+fn display_name(resource_id) {
+    if resource_id == "common_tree" { return "Common tree" }
+    if resource_id == "apple_pond_trout" { return "Apple Pond fishing spot" }
+    return resource_id
+}
+
+fn action_name(resource_id) {
+    if resource_id == "common_tree" { return "Chop" }
+    if resource_id == "apple_pond_trout" { return "Fish" }
+    return "Gather"
+}
+
+fn item_id(resource_id) {
+    if resource_id == "common_tree" { return "common_log" }
+    if resource_id == "apple_pond_trout" { return "raw_trout" }
+    return nil
+}
+
+fn skill_id(resource_id) {
+    if resource_id == "common_tree" { return "woodcutting" }
+    if resource_id == "apple_pond_trout" { return "fishing" }
+    return nil
+}
+
+fn required_level(resource_id) {
+    if exists(resource_id) { return 1 }
+    return 99
+}
+
+fn tool_tag(resource_id) {
+    if resource_id == "common_tree" { return "hatchet" }
+    if resource_id == "apple_pond_trout" { return "fishing_rod" }
+    return nil
+}
+
+fn xp(resource_id) {
+    if resource_id == "common_tree" { return 12 }
+    if resource_id == "apple_pond_trout" { return 10 }
+    return 0
+}
+
+fn respawn_seconds(resource_id) {
+    if resource_id == "common_tree" { return 18 }
+    if resource_id == "apple_pond_trout" { return 8 }
+    return 0
+}

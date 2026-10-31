@@ -1,0 +1,34 @@
+// The HUD panel is the live conversation state. Avoid a second state value
+// that can drift from the visible dialogue when a Module is re-instantiated.
+
+fn is_open() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    return presenter.is_open() && presenter.speaker() == "STEWARD EDRIN"
+}
+
+fn show() {
+    const phase = scripts.quests.watch_quest.aeo.stage()
+    if phase == 0 {
+        scripts.dialogue.dialogue_presenter.aeo.show("STEWARD EDRIN", "The Broken Watch has gone dark.\nBring me its beacon key.  [E] Accept   [Q] Leave")
+    } else if phase == 1 {
+        scripts.dialogue.dialogue_presenter.aeo.show("STEWARD EDRIN", "West of Apple Pond, among the ruined stones.\nFind the beacon key and bring it home.  [E] Close")
+    } else if phase == 2 {
+        scripts.dialogue.dialogue_presenter.aeo.show("STEWARD EDRIN", "You found it. Hearthvale owes you a clear road.\n[E] Return the key to me")
+    } else {
+        scripts.dialogue.dialogue_presenter.aeo.show("STEWARD EDRIN", "The beacon burns again. Mara at the Copper Kettle has been asking for you.\nYour reward is 25 crowns.  [E] Close")
+    }
+}
+
+fn advance() {
+    const phase = scripts.quests.watch_quest.aeo.stage()
+    if phase == 0 {
+        scripts.quests.watch_quest.aeo.accept()
+    } else if phase == 2 {
+        scripts.quests.watch_quest.aeo.complete()
+    }
+    close()
+}
+
+fn close() {
+    scripts.dialogue.dialogue_presenter.aeo.close()
+}

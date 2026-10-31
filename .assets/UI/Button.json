@@ -1,0 +1,9 @@
+{
+  "element_type": "Button",
+  "size": [140.0, 40.0],
+  "color": [1.0, 1.0, 1.0, 1.0],
+  "corner_radius": 4.0,
+  "border_width": 1.0,
+  "border_color": [1.0, 1.0, 1.0, 0.12],
+  "text": "BUTTON"
+}

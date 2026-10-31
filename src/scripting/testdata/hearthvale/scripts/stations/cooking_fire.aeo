@@ -1,0 +1,10 @@
+// The shared recipe system owns validation and rewards; this Actor supplies
+// a location and station tag.
+const cooking_fire = self.parent
+cooking_fire.attributes["interaction_kind"] = "process"
+cooking_fire.attributes["station_tag"] = "cooking_range"
+
+on.keypress(key, down) {
+    if down == false || key != "E" { return }
+    scripts.stations.station_actions.aeo.try_process(cooking_fire, "cook_trout", "cooking_range")
+}

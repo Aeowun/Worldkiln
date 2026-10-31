@@ -1,0 +1,46 @@
+// Shared station action. Authored station Actors provide location and a stable
+// station tag; recipe data owns inputs, outputs, skill, level, and XP.
+busy_stations: map = {}
+
+fn distance_squared(actor) {
+    const here = player.position
+    const there = actor.position
+    const dx = here[0] - there[0]
+    const dy = here[1] - there[1]
+    const dz = here[2] - there[2]
+    return dx * dx + dy * dy + dz * dz
+}
+
+fn try_process(actor, recipe_id, station_tag) {
+    if actor == nil || actor.visible == false || player == nil {
+        return false
+    }
+    const station_id = actor.actor_id
+    if busy_stations[station_id] == true {
+        event.fire("hearthvale_system_message", "That station is already in use.")
+        return false
+    }
+    if distance_squared(actor) > 16 {
+        return false
+    }
+    const recipes = scripts.systems.recipes.aeo
+    const reason = recipes.failure_reason(recipe_id, station_tag)
+    if reason != nil {
+        event.fire("hearthvale_system_message", reason)
+        return false
+    }
+    busy_stations[station_id] = true
+    event.fire("hearthvale_action_started", scripts.data.recipes.aeo.display_name(recipe_id), station_id)
+    wait(1.0)
+    if distance_squared(actor) > 16 {
+        busy_stations[station_id] = nil
+        event.fire("hearthvale_action_cancelled", station_id, "moved_away")
+        return false
+    }
+    const completed = recipes.complete(recipe_id, station_tag)
+    busy_stations[station_id] = nil
+    if completed {
+        event.fire("hearthvale_action_completed", station_id)
+    }
+    return completed
+}

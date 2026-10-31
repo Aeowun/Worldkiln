@@ -1,0 +1,25 @@
+// A short callback-driven route keeps Mara near her inn without a polling loop.
+const innkeeper = self.parent
+at_door: bool = true
+
+fn walk_next() {
+    if at_door {
+        at_door = false
+        // The expanded inn occupies the old (12, -13) waypoint. This point is
+        // on the verified walkable frontage and keeps Mara beside her door.
+        innkeeper.navigate_to([13, 1, -15], 1.1, 0.35)
+    } else {
+        at_door = true
+        innkeeper.navigate_to([16, 1, -15], 1.1, 0.35)
+    }
+}
+
+innkeeper.on_navigation_finished = fn() {
+    walk_next()
+}
+
+innkeeper.on_navigation_failed = fn(reason) {
+    debug.log("Mara's inn route paused: " + reason)
+}
+
+walk_next()

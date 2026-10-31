@@ -1,0 +1,51 @@
+// The first Hearthvale quest owns only its progression and typed save keys.
+fn stage() {
+    const saved = save.get("hearthvale.watch.stage")
+    if saved == nil {
+        return 0
+    }
+    return saved
+}
+
+fn accept() {
+    if stage() != 0 {
+        return false
+    }
+    save.set("hearthvale.watch.stage", 1)
+    save.commit()
+    event.fire("hearthvale_quest_changed", 1)
+    return true
+}
+
+fn collect_key() {
+    if stage() != 1 {
+        return false
+    }
+    save.set("hearthvale.watch.stage", 2)
+    save.commit()
+    scripts.inventory.satchel.aeo.add_watch_key()
+    event.fire("hearthvale_quest_changed", 2)
+    return true
+}
+
+fn complete() {
+    if stage() != 2 {
+        return false
+    }
+    save.set("hearthvale.watch.stage", 3)
+    save.commit()
+    scripts.inventory.satchel.aeo.remove_watch_key()
+    scripts.systems.economy.aeo.award_once("hearthvale.reward.broken_watch", 25)
+    event.fire("hearthvale_quest_changed", 3)
+    return true
+}
+
+fn ensure_completion_reward() {
+    if stage() == 3 {
+        scripts.systems.economy.aeo.award_once("hearthvale.reward.broken_watch", 25)
+    }
+}
+
+// Existing saves that completed the quest before rewards were introduced are
+// migrated exactly once by the economy's persistent award flag.
+ensure_completion_reward()

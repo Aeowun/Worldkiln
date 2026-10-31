@@ -1,0 +1,84 @@
+// Hearthvale's currency ledger. One typed number is enough for the first
+// economy slice; award_once keeps migration and quest rewards idempotent.
+fn crowns() {
+    const saved = save.get("hearthvale.currency.crowns")
+    if saved == nil {
+        return 0
+    }
+    return saved
+}
+
+fn award(amount) {
+    if stage_award(amount) == false {
+        return false
+    }
+    save.commit()
+    notify_changed()
+    return true
+}
+
+fn award_once(flag, amount) {
+    if save.has(flag) {
+        return false
+    }
+    if amount <= 0 {
+        return false
+    }
+    const total = crowns() + amount
+    save.set("hearthvale.currency.crowns", total)
+    save.set(flag, true)
+    save.commit()
+    event.fire("hearthvale_currency_changed", total)
+    return true
+}
+
+fn can_afford(amount) {
+    return amount >= 0 && crowns() >= amount
+}
+
+// Stage-only operations let shops combine currency and inventory changes in
+// one atomic commit. The caller fires domain notifications after committing.
+fn stage_spend(amount) {
+    if amount <= 0 || can_afford(amount) == false {
+        return false
+    }
+    save.set("hearthvale.currency.crowns", crowns() - amount)
+    return true
+}
+
+// Quest and shop transactions use this to keep currency, inventory, XP, and
+// progression changes inside one save commit.
+fn stage_award(amount) {
+    if amount <= 0 {
+        return false
+    }
+    save.set("hearthvale.currency.crowns", crowns() + amount)
+    return true
+}
+
+fn notify_changed() {
+    event.fire("hearthvale_currency_changed", crowns())
+}
+
+fn spend(amount) {
+    if stage_spend(amount) == false {
+        return false
+    }
+    save.commit()
+    notify_changed()
+    return true
+}
+
+// Commits the price and one persistent ownership flag together so a failed
+// write cannot charge the player without granting the purchase.
+fn purchase_once(ownership_key, amount) {
+    if amount <= 0 || save.has(ownership_key) || can_afford(amount) == false {
+        return false
+    }
+    const total = crowns() - amount
+    save.set("hearthvale.currency.crowns", total)
+    save.set(ownership_key, true)
+    save.commit()
+    event.fire("hearthvale_currency_changed", total)
+    return true
+}

@@ -1,0 +1,12 @@
+Effekseer sample effect attribution
+
+Asset: fire.efkefc and associated PNG textures (fire_tex, smoke_tex, glow, double-shockwave).
+Origin: Effekseer 1.80.7 Windows Tool ZIP, Sample/01_AndrewFM01/fire.efkproj, exported with the official Effekseer -cui -o command.
+Source: https://github.com/effekseer/Effekseer/releases/download/1807/Effekseer1.80.7Win.zip
+Copyright: AndrewFM (Effekseer sample contributor).
+License: CC0-1.0 as published at https://effekseer.github.io/en/contribute.html
+Tool/runtime: MIT license text in LICENSE_EFFEKSEER.txt.
+The effects' inclusion does not imply endorsement or trademark permission.
+
+Sample effect file and texture assets are engine-owned for the built-in fire preset only.
+Do not treat imported project assets or any existing creator resources as replaceable.

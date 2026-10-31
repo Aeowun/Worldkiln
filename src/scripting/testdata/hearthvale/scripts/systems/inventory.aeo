@@ -1,0 +1,150 @@
+const capacity = 28
+
+fn save_key(item_id) {
+    // Keep the established key shape so existing Hearthvale saves remain valid.
+    return "hearthvale.inventory." + item_id
+}
+
+fn count(item_id) {
+    if scripts.data.items.aeo.exists(item_id) == false {
+        return 0
+    }
+    const saved = save.get(save_key(item_id))
+    if saved == nil || saved < 0 {
+        return 0
+    }
+    return saved
+}
+
+fn has(item_id, amount) {
+    return amount > 0 && count(item_id) >= amount
+}
+
+fn occupied_slots() {
+    slots: number = 0
+    const items = scripts.data.items.aeo
+    for item_id in items.all_ids() {
+        const quantity = count(item_id)
+        if quantity > 0 {
+            if items.stackable(item_id) {
+                slots += 1
+            } else {
+                slots += quantity
+            }
+        }
+    }
+    return slots
+}
+
+fn slots_needed(item_id, amount) {
+    if amount <= 0 {
+        return 0
+    }
+    if scripts.data.items.aeo.stackable(item_id) {
+        if count(item_id) > 0 {
+            return 0
+        }
+        return 1
+    }
+    return amount
+}
+
+fn can_add(item_id, amount) {
+    if scripts.data.items.aeo.exists(item_id) == false || amount <= 0 {
+        return false
+    }
+    return occupied_slots() + slots_needed(item_id, amount) <= capacity
+}
+
+fn can_exchange(remove_id, remove_amount, add_id, add_amount) {
+    const items = scripts.data.items.aeo
+    if items.exists(remove_id) == false || items.exists(add_id) == false || remove_amount <= 0 || add_amount <= 0 || has(remove_id, remove_amount) == false {
+        return false
+    }
+    slots: number = 0
+    for item_id in items.all_ids() {
+        quantity: number = count(item_id)
+        if item_id == remove_id {
+            quantity -= remove_amount
+        }
+        if item_id == add_id {
+            quantity += add_amount
+        }
+        if quantity > 0 {
+            if items.stackable(item_id) {
+                slots += 1
+            } else {
+                slots += quantity
+            }
+        }
+    }
+    return slots <= capacity
+}
+
+// Stage functions deliberately do not commit. Recipes, shops, and quests can
+// combine inventory, currency, XP, and world state into one atomic save write.
+fn stage_add(item_id, amount) {
+    if can_add(item_id, amount) == false {
+        return false
+    }
+    save.set(save_key(item_id), count(item_id) + amount)
+    return true
+}
+
+fn stage_remove(item_id, amount) {
+    if has(item_id, amount) == false {
+        return false
+    }
+    const remaining = count(item_id) - amount
+    if remaining == 0 {
+        save.remove(save_key(item_id))
+    } else {
+        save.set(save_key(item_id), remaining)
+    }
+    return true
+}
+
+fn notify_changed(item_id) {
+    event.fire("hearthvale_inventory_changed", item_id, count(item_id))
+}
+
+fn add(item_id, amount) {
+    if stage_add(item_id, amount) == false {
+        return false
+    }
+    save.commit()
+    notify_changed(item_id)
+    return true
+}
+
+fn remove(item_id, amount) {
+    if stage_remove(item_id, amount) == false {
+        return false
+    }
+    save.commit()
+    notify_changed(item_id)
+    return true
+}
+
+fn summary(max_lines) {
+    if max_lines <= 0 {
+        return ""
+    }
+    text: string = ""
+    shown: number = 0
+    const items = scripts.data.items.aeo
+    for item_id in items.all_ids() {
+        const quantity = count(item_id)
+        if quantity > 0 && shown < max_lines {
+            if shown > 0 {
+                text = text + "\n"
+            }
+            text = text + items.display_name(item_id) + "  x" + quantity
+            shown += 1
+        }
+    }
+    if shown == 0 {
+        return "Empty"
+    }
+    return text
+}

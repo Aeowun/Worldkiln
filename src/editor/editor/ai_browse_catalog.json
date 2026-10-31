@@ -1,0 +1,305 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "path": "root",
+      "title": "Worldkiln AI knowledge",
+      "summary": "Choose Web for current documentation or Catalogue for engine-verified creator workflows. Browse one level at a time."
+    },
+    {
+      "path": "web",
+      "title": "Web documentation",
+      "summary": "Current Aeowun documentation is advisory; engine source and validator remain authoritative. No internet request occurs by opening this branch."
+    },
+    {
+      "path": "web/search",
+      "title": "Search the current website",
+      "summary": "Use search_live_aeowun_docs with a narrow topic (for example 'Actor navigation callbacks'); it returns titles/paths only, never full pages.",
+      "notes": "Next: choose ONE result and pass its PATH to read_live_aeowun_doc. Do not fetch unrelated pages.",
+      "source": "https://aeowun.com/docs/"
+    },
+    {
+      "path": "web/offline",
+      "title": "Search the offline index",
+      "summary": "Use search_aeoscript_docs for engine/source-backed facts and indexed official references; use read_aeoscript_doc with a returned ID to dive into one page.",
+      "notes": "Prefer source-backed examples to historic website snippets. The website may describe a different public release.",
+      "source": "src/editor/editor/ai_knowledge.rs"
+    },
+    {
+      "path": "catalog",
+      "title": "Creator catalogue",
+      "summary": "Choose a topic to see its concepts and next-step options. Only an individual example page contains full code; nothing is bulk-injected.",
+      "notes": "Use the examples as patterns, not guarantees of Play-mode behavior."
+    },
+    {
+      "path": "catalog/ui",
+      "title": "UI authoring and runtime UI",
+      "summary": "Worldkiln offers editor-authored UI and runtime elements built with AeoScript. Script UI handles can be created, found by stable key, given properties and click callbacks.",
+      "notes": "Authoring defines a saved document in the UI workspace; runtime changes are Play-session state. Ui elements include Panel, Text, Button. Choose a specific branch below.",
+      "source": "docs/language/AeoScript_API.md"
+    },
+    {
+      "path": "catalog/ui/runtime",
+      "title": "Build a UI panel at runtime",
+      "summary": "A global AeoScript can create runtime Panel and Text handles. Configure anchors, dimensions, colors and text via handle properties.",
+      "notes": "Run in a project Global script. This example creates runtime-only elements, not an authored UI asset. Coordinates and sizes use screen-space units.",
+      "source": "src/scripting/testdata/hearthvale/scripts/ui/hearthvale_hud.aeo",
+      "code": "const viewport = ui.get_viewport_size()\nconst panel = ui.new(\"Panel\")\npanel.key = \"runtime_status\"\npanel.anchor = \"TopLeft\"\npanel.position = [18, 18]\npanel.size = [260, 64]\npanel.color = [0.05, 0.05, 0.06, 0.9]\nconst title = ui.new(\"Text\")\ntitle.key = \"runtime_status_text\"\ntitle.position = [30, 30]\ntitle.size = [230, 24]\ntitle.text = \"Ready\"",
+      "context": "global"
+    },
+    {
+      "path": "catalog/ui/authored",
+      "title": "Use an authored UI element",
+      "summary": "An authored UI document uses stable element keys. AeoScript can look up the element instead of creating a duplicate.",
+      "notes": "First create and name the UI element in the UI Authoring workspace. Call ui.find(key) to find an element in the default document; ui.find(document_key, key) for a specific document.",
+      "source": "src/scripting/testdata/hearthvale/scripts/dialogue/dialogue_presenter.aeo",
+      "code": "const panel = ui.find(\"quest_panel\")\nif panel != nil {\n    panel.visible = true\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/ui/events",
+      "title": "Runtime Button and click behavior",
+      "summary": "Button handles support on_click anonymous functions; do not wire clicks by changing a Text label or inventing ui.on_clicked.",
+      "notes": "Call this from a Global script; event callback changes runtime UI only.",
+      "source": "docs/language/AeoScript_API.md",
+      "code": "const button = ui.new(\"Button\")\nbutton.key = \"heal_button\"\nbutton.anchor = \"TopLeft\"\nbutton.position = [20, 100]\nbutton.size = [140, 42]\nbutton.text = \"Heal\"\nbutton.on_click = fn() {\n    debug.log(\"Heal requested\")\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/ui/layout",
+      "title": "Responsive sizing and anchored elements",
+      "summary": "Use ui.get_viewport_size() to inspect the runtime viewport; set valid named anchors and adapt positions/sizes as needed.",
+      "notes": "Runtime element position and size are two-number arrays; color is four numbers [r,g,b,a]. Authored UI and runtime UI are separate creation workflows.",
+      "source": "src/scripting/testdata/hearthvale/scripts/ui/hearthvale_menu.aeo",
+      "code": "const viewport = ui.get_viewport_size()\nconst panel = ui.new(\"Panel\")\npanel.anchor = \"Center\"\npanel.size = [viewport[0] - 180, viewport[1] - 120]\npanel.position = [0, 0]\npanel.corner_radius = 12",
+      "context": "global"
+    },
+    {
+      "path": "catalog/nav",
+      "title": "Navigation / walkability",
+      "summary": "Navigation uses a bounded walkability grid sampled from supporting Cells and Terrain, not an exposed polygon-navmesh AeoScript builder. Actor navigation requires valid character control, walkable surfaces and reachable destinations.",
+      "notes": "NavMesh bounds and slope/step/water settings belong in the editor Navigation panel. Calling navigate_to does not create walkable geometry. Navigation is BETA; do not claim reaching a destination without Play tests.",
+      "source": "src/character/system/pathfinding.rs"
+    },
+    {
+      "path": "catalog/nav/bounds",
+      "title": "Configure NavMesh bounds",
+      "summary": "Create/adjust NavMesh Bounds Volumes in the Navigation editor panel, then check walkability/debug visualization; configure max slope, step height and water-depth limits there.",
+      "notes": "There is NO general navmesh.bounds() or navmesh.generate() AeoScript API. Existing solver samples grid cells within configured bounds; navigation snapshots may need regeneration after terrain changes.",
+      "source": "docs/work-orders/pending/0.8.7_54_NAVMESH_BOUNDS_TERRAIN_NAVIGATION.md"
+    },
+    {
+      "path": "catalog/nav/patrol",
+      "title": "Actor patrol with callback transitions",
+      "summary": "Actor-attached Modules can access their owning Actor through self.parent. navigate_to accepts a destination basket [x,y,z], optional speed, and stop distance. Callbacks drive route legs.",
+      "notes": "Attach this Module to a character-backed Actor. Replace example coordinates with reachable scene locations. Callbacks are a behavior contract; parsing does not prove the walkable route exists.",
+      "source": "src/scripting/testdata/hearthvale/scripts/npcs/blacksmith_patrol.aeo",
+      "code": "const guard = self.parent\nat_first: bool = true\nfn next_point() {\n    if at_first {\n        at_first = false\n        guard.navigate_to([12, 0, 6], 2.0, 0.3)\n    } else {\n        at_first = true\n        guard.navigate_to([6, 0, 12], 2.0, 0.3)\n    }\n}\nguard.on_navigation_finished = fn() {\n    next_point()\n}\nguard.on_navigation_failed = fn(reason) {\n    debug.log(\"Path unavailable:\", reason)\n}\nnext_point()",
+      "context": "actor_module"
+    },
+    {
+      "path": "catalog/nav/check",
+      "title": "Track path success vs failure",
+      "summary": "The navigation request indicates whether navigation starts. Completion/failure callbacks are the actual outcome; do not classify a point good from navigate_to() alone.",
+      "notes": "A point recorded on finished is not necessarily permanently reachable if the scene changes. Example destinations are placeholders.",
+      "source": "src/scripting/testdata/hearthvale/scripts/npcs/blacksmith_patrol.aeo",
+      "code": "const actor = self.parent\ngood_points: basket = []\nbad_points: basket = []\ngoal: basket = [5, 0, 8]\nactor.on_navigation_finished = fn() {\n    good_points.insert(good_points.len(), goal)\n}\nactor.on_navigation_failed = fn(reason) {\n    bad_points.insert(bad_points.len(), goal)\n    debug.log(reason)\n}\nactor.navigate_to(goal, 2.0, 0.25)",
+      "context": "actor_module"
+    },
+    {
+      "path": "catalog/nav/stop",
+      "title": "Cancel or inspect Actor navigation",
+      "summary": "Actor handles have cancel_navigation() and is_navigating(). Cancelling navigation is different from reporting an unreachable path.",
+      "notes": "Check whether the Actor is a character-backed navigable entity before calling. Player namespace supports separate controls and should not be mistaken for Actor handles.",
+      "source": "docs/language/AeoScript_HANDLES.md",
+      "code": "const actor = self.parent\nif actor.is_navigating() {\n    actor.cancel_navigation()\n}",
+      "context": "actor_module"
+    },
+    {
+      "path": "catalog/player",
+      "title": "Player scripts and controls",
+      "summary": "Player Scripts attach to the runtime Player Actor through Project Explorer/Player Scripts, not a global playerscripts namespace. The built-in player namespace controls horizontal velocity, facing and animation.",
+      "notes": "Use player.controller for the primary controller Module when available. Player-bound scripts differ from normal global scripts and Actor Modules.",
+      "source": "docs/language/AeoScript_API.md"
+    },
+    {
+      "path": "catalog/player/control",
+      "title": "Move and animate the Player",
+      "summary": "Use player.set_horizontal_velocity(vx,vz), set_facing_direction(dx,dz), select_animation(name), is_grounded and apply_vertical_impulse.",
+      "notes": "This demonstrates an explicit control request; a real controller calculates vx/vz from input and updates it. Do not create duplicate controllers by default.",
+      "source": "docs/language/AeoScript_EXAMPLES.md",
+      "code": "player.set_horizontal_velocity(2.0, 0.0)\nplayer.set_facing_direction(1.0, 0.0)\nplayer.select_animation(\"Walk\")",
+      "context": "global"
+    },
+    {
+      "path": "catalog/player/modules",
+      "title": "Reference Player controller Module",
+      "summary": "Player Scripts are attached via Explorer. The player.controller property points to the primary controller Module; player.find(name) can locate player-attached modules if available in the runtime.",
+      "notes": "Accessing a module does not itself move the player. Do not invent a global playerscripts object.",
+      "source": "docs/language/AeoScript_API.md",
+      "code": "const controller = player.controller\nif controller != nil {\n    debug.log(\"Player controller present\")\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/player/grounded",
+      "title": "Character grounded / jump",
+      "summary": "Player character APIs include is_grounded() and apply_vertical_impulse(impulse). Use a gameplay/input condition before triggering a jump.",
+      "notes": "Only character-backed player controllers respond. Calling each frame without input will repeatedly request jumps.",
+      "source": "docs/language/AeoScript_API.md",
+      "code": "if player.is_grounded() {\n    player.apply_vertical_impulse(5.0)\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/actors",
+      "title": "Actors, identity and attachments",
+      "summary": "Actors are first-class authored or runtime objects distinct from Cells. Actor handles expose transforms, package, attributes and (on character-backed Actors) navigation and animation.",
+      "notes": "Authored Actor IDs are persistent; names need not be unique. Prefer an Actor ID for instance-specific operations. An attached Module uses self.parent.",
+      "source": "docs/language/AeoScript_HANDLES.md"
+    },
+    {
+      "path": "catalog/actors/attached",
+      "title": "Actor-attached Module pattern",
+      "summary": "Attach a Module from project Explorer or the AI attach_actor_script tool; top-level Module code runs in the attached context. self.parent is the Actor, not the Module instance.",
+      "notes": "Do not use entity {...} lifecycle as a substitute for Actor Module attachment. Moving self is incorrect; call the supported Actor method on self.parent.",
+      "source": "docs/language/AeoScript_LIFECYCLE.md",
+      "code": "const actor = self.parent\nactor.set_position(1, 2, 3)\ndebug.log(actor.name())",
+      "context": "actor_module"
+    },
+    {
+      "path": "catalog/actors/find",
+      "title": "Find authored Actors by identity",
+      "summary": "Use proj.find(name) for a project-scoped Actor lookup; duplicate names are possible. A global find() is legacy.",
+      "notes": "Check for nil if the named Actor is absent. Actor name is not a unique persistent reference.",
+      "source": "docs/language/AeoScript_HANDLES.md",
+      "code": "const guard = proj.find(\"Guard\")\nif guard != nil {\n    debug.log(guard.position)\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/actors/transform",
+      "title": "Transform an Actor",
+      "summary": "Actor.set_position takes three numeric arguments, not a basket. translate likewise takes x,y,z; navigation instead takes a destination basket.",
+      "notes": "set_position teleports and is not pathfinding. Use navigate_to for walkable movement when a character/nav surface supports it.",
+      "source": "docs/language/AeoScript_HANDLES.md",
+      "code": "const guard = self.parent\nguard.translate(0, 0, 1)\nguard.set_position(3, 1, 7)",
+      "context": "actor_module"
+    },
+    {
+      "path": "catalog/cells",
+      "title": "Cells versus Actors",
+      "summary": "Cells are world/scene elements (Blocks, FxBlocks, Lights, emitters and other types). Actors are separately indexed scene objects and can have character/navigation behavior. Cells do not automatically expose Actor locomotion.",
+      "notes": "Use cell.get(id), cell.exists(id), cell.new(type), and cell.delete(handle) for supported runtime Cell operations. Runtime changes do not overwrite authored project data.",
+      "source": "docs/language/AeoScript_HANDLES.md"
+    },
+    {
+      "path": "catalog/cells/runtime",
+      "title": "Create a runtime Cell",
+      "summary": "cell.new creates supported Cell types in the active Play world, not a saved editor asset. Configure the returned Cell handle using its supported properties.",
+      "notes": "Confirm the accepted Cell type before creating. This example uses a Light Cell; placement and lighting require scene checks.",
+      "source": "docs/language/AeoScript_API.md",
+      "code": "const light = cell.new(\"Light\")\nlight.position = [0, 4, 0]\nlight.visible = true",
+      "context": "global"
+    },
+    {
+      "path": "catalog/cells/find",
+      "title": "Read an existing Cell",
+      "summary": "cell.get(id) returns a Cell handle or nil; cell.exists checks whether it exists. This differs from proj.find for Actor objects.",
+      "notes": "Replace 42 with a real Cell ID from the project. The Cell may not be loaded or present in Play.",
+      "source": "docs/language/AeoScript_API.md",
+      "code": "const object = cell.get(42)\nif object != nil {\n    debug.log(object.name)\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/modules",
+      "title": "AeoScript Modules, files and state",
+      "summary": "Module files live in scripts/ (reusable) or playerscripts/ (attached to Player). Modules own their own top-level state per runtime instance and may expose functions for callers.",
+      "notes": "References use the scripts dotted path with .aeo suffix; importing a Module does not magically attach it to an Actor. Module names/files must exist.",
+      "source": "docs/language/AeoScript_Modules.md"
+    },
+    {
+      "path": "catalog/modules/state",
+      "title": "A stateful reusable Module",
+      "summary": "A Module's top-level typed variables persist for that runtime module instance. Functions called by another script can mutate declared state.",
+      "notes": "Save this as scripts/counter.aeo. A separate caller uses scripts.counter.aeo (see Caller path). Not automatically persisted across Play sessions.",
+      "source": "docs/language/AeoScript_Modules.md",
+      "code": "counter: number = 0\nfn bump() {\n    counter += 1\n}\nfn read_count() {\n    return counter\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/modules/call",
+      "title": "Call a reusable Module",
+      "summary": "Reference an existing Module by path; its exported functions are callable. Files under scripts/ are different from player-attached scripts.",
+      "notes": "Prerequisite: scripts/counter.aeo must exist. This is an example of project-bound module resolution; no script is created by this call.",
+      "source": "docs/language/AeoScript_Modules.md",
+      "code": "const counter = scripts.counter.aeo\ncounter.bump()\ndebug.log(counter.read_count())",
+      "context": "global"
+    },
+    {
+      "path": "catalog/language",
+      "title": "AeoScript language patterns",
+      "summary": "AeoScript uses newline-separated statements with no semicolons. New mutable variables require a type annotation; const declares immutable bindings. Baskets use len(), not JavaScript .length.",
+      "notes": "Do not assume JavaScript, Lua or Python syntax. Bare assignments are reassignments only; undeclared names fail static validation and runtime.",
+      "source": "docs/language/AeoScript_GRAMMAR.md"
+    },
+    {
+      "path": "catalog/language/declarations",
+      "title": "Explicit variables and reassignment",
+      "summary": "Declare mutable variables with a typed annotation. Use const for immutable bindings. Assignments to an undeclared name are invalid.",
+      "notes": "`var name` and `let name` are not AeoScript syntax; a global bare name = value does not declare it.",
+      "source": "docs/language/AeoScript_GRAMMAR.md",
+      "code": "const limit = 10\nspeed: number = 5\nspeed = speed + 1\ndebug.log(speed, limit)",
+      "context": "global"
+    },
+    {
+      "path": "catalog/language/baskets",
+      "title": "Basket collection length and append",
+      "summary": "AeoScript baskets use .len() and .insert(index,value), not .length or JavaScript push().",
+      "notes": "An index at basket.len() appends a new element. The basket must be mutable to rebind; contents may be changed through supported methods.",
+      "source": "docs/language/AeoScript_STDLIB.md",
+      "code": "points: basket = [[0, 0, 0]]\npoints.insert(points.len(), [4, 0, 8])\ndebug.log(\"Stored:\", points.len())",
+      "context": "global"
+    },
+    {
+      "path": "catalog/language/events",
+      "title": "Fire custom events",
+      "summary": "Use event.fire(name, ...) to publish a named event; `on` declarations listen for custom events. Global on start() is not an automatic startup listener.",
+      "notes": "Ordinary top-level Global statements execute at Play start. Refer to source event test for exact behavior.",
+      "source": "src/editor/editor/ai_script.rs",
+      "code": "on score_changed(score) {\n    debug.log(\"Score\", score)\n}\nevent.fire(\"score_changed\", 5)",
+      "context": "global"
+    },
+    {
+      "path": "catalog/language/coroutines",
+      "title": "Yielding wait in running script",
+      "summary": "AeoScript uses wait(seconds) to yield in a resumable fiber. Do not assume a standalone `fn update(dt)` is automatically invoked on a Module.",
+      "notes": "Always make loops yield; a tight while true without wait can stall runtime work.",
+      "source": "docs/language/AeoScript_LIFECYCLE.md",
+      "code": "tick: number = 0\nwhile tick < 3 {\n    tick = tick + 1\n    debug.log(tick)\n    wait(1.0)\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/language/persistence",
+      "title": "Save data versus runtime module state",
+      "summary": "A typed Module variable holds Play-session state; use save.get/save.set/save.commit for persistent data where supported.",
+      "notes": "Persistence is project/game-specific. Do not equate an attached script variable with world.dat or an authored project property.",
+      "source": "docs/language/AeoScript_API.md",
+      "code": "const existing = save.get(\"progress.level\")\nif existing != nil {\n    debug.log(\"Saved level\", existing)\n}",
+      "context": "global"
+    },
+    {
+      "path": "catalog/nav/player",
+      "title": "Player movement vs Actor navigation",
+      "summary": "The player scripting namespace exposes velocity, facing, grounded and animation controls, but does not currently expose player.navigate_to(). NPC Actor handles have navigate_to() when character/pathfinding setup supports it.",
+      "notes": "For automatic player travel, use a supported controller/Actor API if the engine exposes one in that context, or implement input/steering in a Player Script; do not invent player.navigate_to() or claim that a velocity command has verified pathfinding.",
+      "source": "docs/language/AeoScript_API.md",
+      "context": "global",
+      "code": "player.set_horizontal_velocity(0.0, 2.0)\nplayer.set_facing_direction(0.0, 1.0)\nplayer.select_animation(\"Walk\")"
+    },
+    {
+      "path": "catalog/cells/compare",
+      "title": "When to use Cells versus Actors",
+      "summary": "Cells are engine-managed scene components such as blocks, effects, lights and emitters. Actors are distinct authored or runtime entities with identities, packages and potential character/navigation controls.",
+      "notes": "Use cell.new(type) for a runtime Cell; choose imported Actors from the asset library or use the editor Actor tool for authored Actor objects. For scripts: Actor-attached Modules use self.parent; legacy Cell script bindings have a separate entity contract. Neither a Cell nor an Actor is interchangeable with the Player Script attachment list.",
+      "source": "docs/language/AeoScript_HANDLES.md"
+    }
+  ]
+}

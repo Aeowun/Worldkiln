@@ -1,0 +1,44 @@
+fn exists(recipe_id) {
+    return recipe_id == "saw_common_plank" || recipe_id == "cook_trout"
+}
+
+fn display_name(recipe_id) {
+    if recipe_id == "saw_common_plank" { return "Saw common plank" }
+    if recipe_id == "cook_trout" { return "Cook trout" }
+    return recipe_id
+}
+
+fn station_tag(recipe_id) {
+    if recipe_id == "saw_common_plank" { return "sawbench" }
+    if recipe_id == "cook_trout" { return "cooking_range" }
+    return nil
+}
+
+fn skill_id(recipe_id) {
+    if recipe_id == "saw_common_plank" { return "carpentry" }
+    if recipe_id == "cook_trout" { return "cooking" }
+    return nil
+}
+
+fn required_level(recipe_id) {
+    if exists(recipe_id) { return 1 }
+    return 99
+}
+
+fn input_item(recipe_id) {
+    if recipe_id == "saw_common_plank" { return "common_log" }
+    if recipe_id == "cook_trout" { return "raw_trout" }
+    return nil
+}
+
+fn output_item(recipe_id) {
+    if recipe_id == "saw_common_plank" { return "common_plank" }
+    if recipe_id == "cook_trout" { return "cooked_trout" }
+    return nil
+}
+
+fn xp(recipe_id) {
+    if recipe_id == "saw_common_plank" { return 10 }
+    if recipe_id == "cook_trout" { return 14 }
+    return 0
+}

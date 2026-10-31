@@ -1,0 +1,5 @@
+// Actor-attached narrative metadata stays with the authored character.
+const steward = self.parent
+steward.attributes["role"] = "Steward of Hearthvale"
+steward.attributes["home"] = "Hearthvale Hall"
+steward.attributes["dialogue"] = "steward_conversation"

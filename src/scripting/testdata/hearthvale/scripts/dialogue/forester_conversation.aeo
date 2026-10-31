@@ -1,0 +1,36 @@
+fn is_open() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    return presenter.is_open() && presenter.speaker() == "ROWAN ASH"
+}
+
+fn show() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    const quest = scripts.quests.roots_beneath_wall.aeo
+    const current = quest.stage()
+    if current == 0 {
+        presenter.show("ROWAN ASH", "The north postern is buckling, and the Oldwood is answering old fire with stranger roots. I need eyes before I need an axe.  [E] Take the worn hatchet  [Q] Leave")
+    } else if current == 1 {
+        presenter.show("ROWAN ASH", "Read the three marked trunks first. Straight grain is safe. Hollow wood stays standing. Grey ash means the old wards have touched it.  [E] Close")
+    } else if current == 2 {
+        presenter.show("ROWAN ASH", "Now cut only sound common trees. Five logs will tell us whether the postern can be saved.  [E] Close")
+    } else if current == 3 {
+        presenter.show("ROWAN ASH", "The sawbench in the craft quarter will turn those logs true. Bring me three planks.  [E] Close")
+    } else if current == 4 {
+        presenter.show("ROWAN ASH", "Good planks—and ward-ash under the bark. This is no ordinary rot. The next repair needs Torren's brace before we open that road.  [E] Close")
+    } else {
+        presenter.show("ROWAN ASH", "The postern holds. Beyond it, the Oldwood grows older and less forgiving.  [E] Close")
+    }
+}
+
+fn advance() {
+    const quest = scripts.quests.roots_beneath_wall.aeo
+    if quest.stage() == 0 {
+        if quest.accept() { show() }
+        return
+    }
+    if quest.stage() == 4 {
+        if quest.complete_repair() { show() }
+        return
+    }
+    scripts.dialogue.dialogue_presenter.aeo.close()
+}

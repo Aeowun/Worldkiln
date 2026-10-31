@@ -1,0 +1,36 @@
+fn is_open() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    return presenter.is_open() && presenter.speaker() == "TORREN VALE"
+}
+
+fn is_trade_ready() {
+    return scripts.quests.watch_quest.aeo.stage() >= 3 && scripts.dialogue.innkeeper_conversation.aeo.meal_claimed()
+}
+
+fn show() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    const equipment = scripts.equipment.roadwarden_blade.aeo
+    if scripts.quests.watch_quest.aeo.stage() < 3 {
+        presenter.show("TORREN VALE", "Iron travels when roads are safe. Until that western beacon burns, every order waits.  [E] Close")
+    } else if scripts.dialogue.innkeeper_conversation.aeo.meal_claimed() == false {
+        presenter.show("TORREN VALE", "Mara has been keeping a plate warm for the one who relit the road. See her first.  [E] Close")
+    } else if equipment.owns_blade() {
+        presenter.show("TORREN VALE", "The Roadwarden blade sits true in your hand. Keep its edge clean and Hearthvale at your back.  [E] Close")
+    } else if scripts.systems.economy.aeo.can_afford(20) {
+        presenter.show("TORREN VALE", "I saved a road blade for whoever woke the Broken Watch. Twenty crowns, fitted to your hand.  [E] Purchase")
+    } else {
+        presenter.show("TORREN VALE", "The road blade costs twenty crowns. Honest steel cannot be hurried, and neither can honest coin.  [E] Close")
+    }
+}
+
+fn advance() {
+    const equipment = scripts.equipment.roadwarden_blade.aeo
+    if is_trade_ready() && equipment.owns_blade() == false && scripts.systems.economy.aeo.can_afford(20) {
+        if equipment.purchase() {
+            event.fire("hearthvale_journal_changed")
+            show()
+            return
+        }
+    }
+    scripts.dialogue.dialogue_presenter.aeo.close()
+}

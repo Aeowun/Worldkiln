@@ -1,0 +1,8 @@
+const guard = self.parent
+guard_spear: Entity? = nil
+
+wait(0.1)
+if guard_spear == nil || guard_spear.is_valid() == false {
+    guard_spear = spawn("NorthGuardSpear", guard.position, "hand_spear")
+    attach(guard_spear, "Grip", guard, "RightHand")
+}

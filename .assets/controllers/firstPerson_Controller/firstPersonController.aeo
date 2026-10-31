@@ -1,0 +1,123 @@
+// Worldkiln
+// Copyright (c) 2026 Zachary Joubert / AEOWUN. All rights reserved.
+// Licensed under the AeoEngine Source-Available License.
+// See LICENSE in the repository root for the complete terms.
+entity FirstPersonController {
+
+player = nil
+camera = nil
+input = nil
+
+speed = 5.0
+move_speed = 5.0
+sprint_multiplier = 1.8
+jump_impulse = 6.5
+
+fn constructor(player_object, camera_object, input_system) {
+    player = player_object
+    camera = camera_object
+    input = input_system
+}
+
+fn update(dt) {
+
+    if player == nil {
+        return
+    }
+
+
+
+    const move = input.get_move_vector()
+    const basis = camera.get_horizontal_basis()
+
+    const forward = basis[0]
+    const right = basis[1]
+
+    const move_x =
+        forward[0] * move[1] +
+        right[0] * move[0]
+
+    const move_z =
+        forward[2] * move[1] +
+        right[2] * move[0]
+
+    const length =
+        math.sqrt(
+            move_x * move_x +
+            move_z * move_z
+        )
+
+
+
+    if length > 0.001 {
+
+        const direction_x =
+            move_x / length
+
+        const direction_z =
+            move_z / length
+
+        const sprinting =
+            input.is_key_down("ShiftLeft") ||
+            input.is_key_down("ShiftRight")
+
+        move_speed =
+            speed
+
+        if sprinting {
+            move_speed =
+                speed * sprint_multiplier
+        }
+
+        player.set_horizontal_velocity(
+            direction_x * move_speed,
+            direction_z * move_speed
+        )
+
+        if player.is_swimming() {
+            player.select_animation("Swim")
+        } else {
+            player.select_animation("Walk")
+        }
+
+    } else {
+
+        player.set_horizontal_velocity(
+            0.0,
+            0.0
+        )
+
+        if player.is_swimming() {
+            player.select_animation("SwimIdle")
+        } else {
+            player.select_animation("Idle")
+        }
+    }
+
+
+
+    const facing_x = forward[0]
+    const facing_z = forward[2]
+
+    const facing_length =
+        math.sqrt(
+            facing_x * facing_x +
+            facing_z * facing_z
+        )
+
+    if facing_length > 0.001 {
+
+        player.set_facing_direction(
+            facing_x / facing_length,
+            facing_z / facing_length
+        )
+    }
+
+
+
+    if input.is_jump_pressed() && (player.is_grounded() || player.is_swimming()) {
+        player.apply_vertical_impulse(jump_impulse)
+    }
+}
+
+}

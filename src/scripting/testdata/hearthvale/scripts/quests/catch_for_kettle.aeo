@@ -1,0 +1,101 @@
+// A compact Fishing/Cooking side quest. It observes shared domain events;
+// resource and station Actors remain reusable and know nothing about quests.
+const stage_key = "hearthvale.quest.catch_for_kettle.stage"
+
+fn stage() {
+    const saved = save.get(stage_key)
+    if saved == nil { return 0 }
+    return saved
+}
+
+fn set_stage(next_stage) {
+    if next_stage <= stage() { return false }
+    save.set(stage_key, next_stage)
+    save.commit()
+    event.fire("hearthvale_catch_changed", next_stage)
+    event.fire("hearthvale_journal_changed")
+    return true
+}
+
+fn stage_grant_rod() {
+    const inventory = scripts.systems.inventory.aeo
+    const equipment = scripts.systems.equipment.aeo
+    if equipment.equipped("main_hand") == "fishing_rod" { return true }
+    if inventory.has("fishing_rod", 1) == false {
+        if inventory.stage_add("fishing_rod", 1) == false { return false }
+    }
+    return equipment.stage_equip("main_hand", "fishing_rod")
+}
+
+fn accept() {
+    if stage() > 0 { return true }
+    const equipment = scripts.systems.equipment.aeo
+    const previous_item = equipment.equipped("main_hand")
+    if stage_grant_rod() == false {
+        event.fire("hearthvale_system_message", "Make room for Elowen's fishing rod.")
+        return false
+    }
+    save.set(stage_key, 1)
+    save.commit()
+    equipment.notify_changed("main_hand", previous_item)
+    event.fire("hearthvale_catch_changed", 1)
+    event.fire("hearthvale_journal_changed")
+    event.fire("hearthvale_system_message", "Fishing rod equipped. Catch three trout at the pond marker.")
+    return true
+}
+
+fn objective() {
+    const inventory = scripts.systems.inventory.aeo
+    const current = stage()
+    if current == 0 { return "Speak to Fisher Elowen at Apple Pond." }
+    if current == 1 { return "Catch three trout at Elowen's fishing marker. (" + inventory.count("raw_trout") + "/3)" }
+    if current == 2 { return "Cook two trout at the Copper Kettle fire. (" + inventory.count("cooked_trout") + "/2)" }
+    if current == 3 { return "Return two cooked trout to Elowen at Apple Pond." }
+    return "Apple Pond supplies the Copper Kettle again."
+}
+
+fn complete_delivery() {
+    if stage() != 3 { return false }
+    const inventory = scripts.systems.inventory.aeo
+    const skills = scripts.systems.skills.aeo
+    const economy = scripts.systems.economy.aeo
+    if inventory.has("cooked_trout", 2) == false { return false }
+    const old_fishing = skills.level("fishing")
+    const old_cooking = skills.level("cooking")
+    if inventory.stage_remove("cooked_trout", 2) == false { return false }
+    if skills.stage_add_xp("fishing", 25) == false { return false }
+    if skills.stage_add_xp("cooking", 30) == false { return false }
+    if economy.stage_award(12) == false { return false }
+    save.set(stage_key, 4)
+    save.commit()
+    inventory.notify_changed("cooked_trout")
+    skills.notify_changed("fishing", old_fishing)
+    skills.notify_changed("cooking", old_cooking)
+    economy.notify_changed()
+    event.fire("hearthvale_catch_changed", 4)
+    event.fire("hearthvale_journal_changed")
+    event.fire("hearthvale_system_message", "Catch for the Kettle complete: 12 crowns and skill XP earned.")
+    return true
+}
+
+on hearthvale_resource_gathered(resource_id, item_id) {
+    if stage() == 1 && resource_id == "apple_pond_trout" && item_id == "raw_trout" {
+        if scripts.systems.inventory.aeo.count("raw_trout") >= 3 {
+            set_stage(2)
+            event.fire("hearthvale_system_message", "Three trout caught. Cook two at the Copper Kettle fire.")
+        } else {
+            event.fire("hearthvale_journal_changed")
+        }
+    }
+}
+
+on hearthvale_recipe_completed(recipe_id, output_id) {
+    if stage() == 2 && recipe_id == "cook_trout" && output_id == "cooked_trout" {
+        if scripts.systems.inventory.aeo.count("cooked_trout") >= 2 {
+            set_stage(3)
+            event.fire("hearthvale_system_message", "Two trout are cooked. Return them to Elowen.")
+        } else {
+            event.fire("hearthvale_journal_changed")
+        }
+    }
+}

@@ -1,0 +1,60 @@
+// Worldkiln
+// Copyright (c) 2026 Zachary Joubert / AEOWUN. All rights reserved.
+// Licensed under the AeoEngine Source-Available License.
+// See LICENSE in the repository root for the complete terms.
+entity ThirdPersonCamera {
+    player = nil
+
+    distance = 6.0
+    height = 2.0
+    look_height = 1.0
+
+    yaw = 0.785
+    pitch = 0.35
+
+    fn constructor(player_object) {
+        player = player_object
+    }
+
+    fn update(dt) {
+        if player == nil { return }
+
+        const orbit_delta = input.get_orbit_delta()
+        yaw = yaw - orbit_delta[0] * 0.025
+        pitch = math.clamp(pitch + orbit_delta[1] * 	0.005, -0.3, 1.4)
+
+        const char_pos = player.position
+        const target = [char_pos[0], char_pos[1] + 	look_height, char_pos[2]]
+
+        const cos_pitch = math.cos(pitch)
+        const follow_offset = [
+            distance * cos_pitch * math.sin(yaw),
+            distance * math.sin(pitch) + height,
+            distance * cos_pitch * math.cos(yaw)
+        ]
+
+        const desired_pos = [
+            char_pos[0] + follow_offset[0],
+            char_pos[1] + follow_offset[1],
+            char_pos[2] + follow_offset[2]
+        ]
+
+        camera.spring_arm({
+            target: target,
+            offset: [
+                desired_pos[0] - target[0],
+                desired_pos[1] - target[1],
+                desired_pos[2] - target[2]
+            ],
+            dt: dt,
+            follow_speed: 8.0,
+            rotation_speed: 12.0,
+            recovery_speed: 10.0,
+            look_ahead: [0.0, 0.0, 0.0],
+            dead_zone: [0.08, 0.08],
+            collision: true,
+            collision_padding: 0.1
+        })
+        camera.set_orientation(yaw, pitch)
+    }
+}

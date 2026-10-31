@@ -1,0 +1,41 @@
+// The journal translates system state into player-facing goals. Future quests
+// can be prioritized here without teaching the HUD every quest's save keys.
+fn active_title() {
+    const phase = scripts.quests.watch_quest.aeo.stage()
+    if phase < 3 {
+        return "THE BROKEN WATCH"
+    }
+    if scripts.dialogue.innkeeper_conversation.aeo.meal_claimed() == false {
+        return "A LIGHT ON THE ROAD"
+    }
+    if scripts.equipment.roadwarden_blade.aeo.owns_blade() == false {
+        return "THE EMBERFORGE EDGE"
+    }
+    if scripts.quests.roots_beneath_wall.aeo.stage() < 5 {
+        return "ROOTS BENEATH THE WALL"
+    }
+    return "CATCH FOR THE KETTLE"
+}
+
+fn active_objective() {
+    const phase = scripts.quests.watch_quest.aeo.stage()
+    if phase == 0 {
+        return "Speak to Steward Edrin outside Hearthvale Hall."
+    }
+    if phase == 1 {
+        return "Find the beacon key at the Broken Watch, west of Apple Pond."
+    }
+    if phase == 2 {
+        return "Return the beacon key to Steward Edrin."
+    }
+    if scripts.dialogue.innkeeper_conversation.aeo.meal_claimed() == false {
+        return "Visit Mara at the Copper Kettle. The town remembers what you did."
+    }
+    if scripts.equipment.roadwarden_blade.aeo.owns_blade() == false {
+        return "Visit Torren at the Emberforge. A Roadwarden blade costs 20 crowns."
+    }
+    if scripts.quests.roots_beneath_wall.aeo.stage() < 5 {
+        return scripts.quests.roots_beneath_wall.aeo.objective()
+    }
+    return scripts.quests.catch_for_kettle.aeo.objective()
+}

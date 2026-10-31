@@ -1,0 +1,31 @@
+// Attach to explicitly authored resource trees only; decorative trees remain inert.
+const tree = self.parent
+tree.attributes["interaction_kind"] = "woodcut"
+tree.attributes["resource_id"] = "common_tree"
+
+fn condition() {
+    const authored = tree.attributes["tree_condition"]
+    if authored == nil { return "sound" }
+    return authored
+}
+
+fn depleted_actor() {
+    const actor_name = tree.attributes["depleted_actor"]
+    if actor_name == nil { return nil }
+    return proj.find(actor_name)
+}
+
+on.keypress(key, down) {
+    if down == false || key != "E" { return }
+    const quest = scripts.quests.roots_beneath_wall.aeo
+    if quest.stage() == 1 {
+        quest.inspect_tree(tree.actor_id, condition())
+        return
+    }
+    if quest.stage() < 2 { return }
+    if condition() != "sound" {
+        event.fire("hearthvale_system_message", "This marked tree must be left standing.")
+        return
+    }
+    scripts.resources.resource_node.aeo.try_gather(tree, "common_tree", depleted_actor())
+}

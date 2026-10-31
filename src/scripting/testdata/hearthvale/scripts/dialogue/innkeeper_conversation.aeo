@@ -1,0 +1,33 @@
+fn meal_claimed() {
+    const claimed = save.get("hearthvale.inn.beacon_supper_claimed")
+    if claimed == nil {
+        return false
+    }
+    return claimed
+}
+
+fn is_open() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    return presenter.is_open() && presenter.speaker() == "MARA VENN"
+}
+
+fn show() {
+    const presenter = scripts.dialogue.dialogue_presenter.aeo
+    const phase = scripts.quests.watch_quest.aeo.stage()
+    if phase < 3 {
+        presenter.show("MARA VENN", "The Copper Kettle is warm, but the western road is dark.\nEdrin may know what is troubling the watch.  [E] Close")
+    } else if meal_claimed() == false {
+        presenter.show("MARA VENN", "So you are the one who brought back the beacon.\nYour first supper in Hearthvale is on the town.  [E] Accept")
+    } else {
+        presenter.show("MARA VENN", "A lit road brings travelers, stories, and honest work.\nThere will always be a place for you here.  [E] Close")
+    }
+}
+
+fn advance() {
+    if scripts.quests.watch_quest.aeo.stage() >= 3 && meal_claimed() == false {
+        if scripts.inventory.satchel.aeo.claim_beacon_supper() {
+            event.fire("hearthvale_journal_changed")
+        }
+    }
+    scripts.dialogue.dialogue_presenter.aeo.close()
+}

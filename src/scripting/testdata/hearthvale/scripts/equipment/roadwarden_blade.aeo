@@ -1,0 +1,50 @@
+fn owns_blade() {
+    if save.get("hearthvale.equipment.roadwarden_blade") == true {
+        return true
+    }
+    if scripts.systems.equipment.aeo.equipped("main_hand") == "roadwarden_blade" {
+        return true
+    }
+    return scripts.systems.inventory.aeo.count("roadwarden_blade") > 0
+}
+
+fn purchase() {
+    const economy = scripts.systems.economy.aeo
+    const inventory = scripts.systems.inventory.aeo
+    const equipment = scripts.systems.equipment.aeo
+    if owns_blade() || economy.can_afford(20) == false || inventory.can_add("roadwarden_blade", 1) == false {
+        return false
+    }
+    if economy.stage_spend(20) == false || inventory.stage_add("roadwarden_blade", 1) == false {
+        return false
+    }
+    if equipment.stage_equip("main_hand", "roadwarden_blade") == false {
+        return false
+    }
+    // Preserve the original ownership flag for old saves and old dialogue.
+    save.set("hearthvale.equipment.roadwarden_blade", true)
+    save.commit()
+    economy.notify_changed()
+    inventory.notify_changed("roadwarden_blade")
+    event.fire("hearthvale_equipment_changed", "main_hand", "roadwarden_blade")
+    return true
+}
+
+fn migrate_legacy_ownership() {
+    const equipment = scripts.systems.equipment.aeo
+    const inventory = scripts.systems.inventory.aeo
+    if save.get("hearthvale.equipment.roadwarden_blade") != true {
+        return
+    }
+    if equipment.equipped("main_hand") == "roadwarden_blade" {
+        return
+    }
+    if inventory.count("roadwarden_blade") == 0 && inventory.stage_add("roadwarden_blade", 1) == false {
+        return
+    }
+    if equipment.stage_equip("main_hand", "roadwarden_blade") {
+        save.commit()
+    }
+}
+
+migrate_legacy_ownership()

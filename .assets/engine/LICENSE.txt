@@ -1,0 +1,2 @@
+SFXMint audio: CC0 1.0. https://creativecommons.org/publicdomain/zero/1.0/
+See manifest.json for source URLs, file properties and checks. Original audio bytes are unchanged.

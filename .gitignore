@@ -1,0 +1,8 @@
+# Rust build output
+/target/
+
+# Clean release-package staging and archives stay local.
+/UserData.zip
+
+
+

@@ -1,0 +1,5 @@
+// Attach to the authored Rowan Actor once the character package is final.
+const forester = self.parent
+forester.attributes["role"] = "Forester and carpenter"
+forester.attributes["home"] = "Hearthvale craft quarter"
+forester.attributes["dialogue"] = "forester_conversation"
