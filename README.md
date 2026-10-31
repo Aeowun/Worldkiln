@@ -4,8 +4,6 @@
 
 [Download](https://github.com/Aeowun/Worldkiln/releases) · [Getting started](https://aeowun.com/worldkiln/getting-started/) · [Documentation](https://aeowun.com/docs/) · [AeoScript](AEOSCRIPT.md)
 
-![The Worldkiln editor](SCREENSHOTS/02-editor-overview.png)
-
 ## Features
 
 - **World building:** Construct with Cells or sculpt and paint larger landscapes. Set up materials, lighting, skies, and fog.
