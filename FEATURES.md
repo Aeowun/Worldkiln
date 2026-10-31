@@ -1,6 +1,6 @@
 # Worldkiln features
 
-[Download](https://github.com/Aeowun/Worldkiln/releases) · [User guide](DIVE.md) · [Documentation](https://aeowun.com/docs/)
+[Download](https://github.com/Aeowun/Worldkiln/releases) · [User guide](https://aeowun.com/worldkiln/dive/) · [Documentation](https://aeowun.com/docs/)
 
 Worldkiln combines a 3D world editor, AeoScript gameplay, and standalone Windows game builds.
 
@@ -34,6 +34,6 @@ Game progress can be stored through AeoScript's `save` APIs, separately from the
 
 Use **Play mode** to test movement, collisions, scripts, cameras, and interfaces. **Build Game** creates a standalone Windows game from the project.
 
-For instructions, see the [user guide](DIVE.md). For scripting details, see [AeoScript](AEOSCRIPT.md) and the [API reference](https://aeowun.com/docs/reference/).
+For instructions, see the [user guide](https://aeowun.com/worldkiln/dive/). For scripting details, see [AeoScript](AEOSCRIPT.md) and the [API reference](https://aeowun.com/docs/reference/).
 
 **BETA** marks tools under active development.
