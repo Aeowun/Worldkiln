@@ -1,0 +1,73 @@
+# Rust build output
+/target/
+
+# JetBrains / IDE files
+/.idea/
+shelf/
+*.iml
+
+# Local development projects / assets
+/Dev/
+/Releases/
+/Builds/
+**/*.wav
+**/*.mp3
+/target/
+/tests/
+/tools/
+# Worldkiln 0.8.5 | WO 0.8.7-83 | 2026-10-10 01:08 -05:00
+# The example maintenance build helper and verifier must ship with source.
+!/tools/
+/tools/*
+!/tools/example_maintenance_build.rs
+!/tools/maintain_aeoscript_examples.py
+!/tools/test_maintain_aeoscript_examples.py
+# Required V1 developer-documentation refresh and change-set guards.
+!/tools/refresh_primary_cheatsheets.py
+!/tools/check_primary_cheatsheets.py
+# UI stress audit scripts only; generated profiles and screenshots stay outside git.
+!/tools/ui_perf_fixture.py
+!/tools/ui_perf_audit.py
+!/tools/ui_perf_live.py
+# Keep WK-FX-002 developer-only integration sources reproducible; no vendored libraries.
+!/tools/effekseer_poc/
+# Worldkiln 0.8.5 | WO MAT-010 | 2026-10-10 15:16 -05:00
+# Track only the validated CC0 Rogue GLB default Character package.
+.assets
+!.assets/
+.assets/*
+!.assets/characters/
+.assets/characters/*
+!.assets/characters/Rogue/
+!.assets/characters/Rogue/**
+chunks
+debug-startup.ps1
+dev-build.ps1
+ps1_run.bat
+# OS junk
+.DS_Store
+Thumbs.db
+AGENTS.md
+UserData/
+# Clean release-package staging and archives stay local.
+/UserData.zip
+
+# Worldkiln 0.9.x | WO WK-ASSET-003 | 2026-10-12 04:36 -05:00
+# Ship the focused integration regression and reproducible model fixtures.
+!/tests/
+/tests/*
+!/tests/wk_asset003_runtime.rs
+!/tests/fixtures/
+/tests/fixtures/*
+!/tests/fixtures/wk_asset003/
+!/tests/fixtures/wk_asset003/*.glb
+!/tools/generate_asset003_fixtures.py
+# Standalone launcher sources; its local dependencies/builds remain ignored.
+!/tools/remote-desktop-launcher/
+!/tools/aeowun-remote-commander/
+
+!/tests/navigation_polygon_contract.rs
+
+# Vetted procedural generators are embedded in the AI Assistant release build.
+!/tools/image_generator.py
+!/tools/generate_actor.py
