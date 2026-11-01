@@ -781,16 +781,6 @@ impl GameRuntime {
             let p_world = &mut self.physics_world;
 
             let character_entities: HashSet<_> = character_system.associated_entity_ids().collect();
-            p_world.step_unified_rapier(
-                entity_manager,
-                gravity,
-                dt,
-                &character_entities,
-                Some(character_system),
-                Some(world),
-            );
-            entity_manager.update_animations(dt);
-
             let attached_children: HashSet<_> =
                 attachment_system.attached_children().into_iter().collect();
             let (camera_forward, _) = gameplay_camera.get_horizontal_basis();
@@ -803,6 +793,16 @@ impl GameRuntime {
             }
             let contacted =
                 character_system.update_scripted_excluding(world, p_world, dt, &attached_children);
+            character_system.sync_entity_positions(entity_manager);
+            p_world.step_unified_rapier(
+                entity_manager,
+                gravity,
+                dt,
+                &character_entities,
+                Some(&mut *character_system),
+                Some(world),
+            );
+            entity_manager.update_animations(dt);
 
             for event in entity_manager.drain_animation_events() {
                 if !character_entities.contains(&event.entity_id) {

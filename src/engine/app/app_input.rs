@@ -11,6 +11,9 @@ use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::keyboard::{KeyCode, PhysicalKey};
 
 use crate::editor::EditorTool;
+use crate::editor::actor_placement::{
+    mesh_bottom_y as actor_brush_mesh_bottom_y, surface_placement_y as actor_brush_placed_y,
+};
 use crate::editor::editor::transform_gizmo::{
     ActorTransformPreview, TransformAxis, TransformMode, hit_test, hit_test_cells,
 };
@@ -92,37 +95,6 @@ fn actor_brush_candidates(
             }
         })
         .collect()
-}
-
-fn actor_brush_mesh_bottom_y(
-    mesh_bounds: Option<(glam::Vec3, glam::Vec3)>,
-    scale: f32,
-    rotation: glam::Vec3,
-) -> f32 {
-    let Some((min, max)) = mesh_bounds else {
-        return 0.0;
-    };
-    let orientation =
-        glam::Quat::from_euler(glam::EulerRot::XYZ, rotation.x, rotation.y, rotation.z);
-    let mut bottom = f32::INFINITY;
-    for x in [min.x, max.x] {
-        for y in [min.y, max.y] {
-            for z in [min.z, max.z] {
-                bottom = bottom.min((orientation * glam::Vec3::new(x, y, z) * scale).y);
-            }
-        }
-    }
-    bottom
-}
-
-fn actor_brush_placed_y(
-    terrain_y: f32,
-    mesh_bounds: Option<(glam::Vec3, glam::Vec3)>,
-    scale: f32,
-    rotation: glam::Vec3,
-    y_offset: f32,
-) -> f32 {
-    terrain_y - actor_brush_mesh_bottom_y(mesh_bounds, scale, rotation) + y_offset
 }
 
 fn snap_actor_stud(value: f32, step: f32) -> f32 {
@@ -1373,25 +1345,7 @@ impl App {
                         } else if let Some(_pending_source) = self.pending_source_grab.take() {
                             self.editor.clear_hover();
                         } else if let Some(grab) = self.editor.actor_grab_state.take() {
-                            if grab.current_position != grab.start_position {
-                                self.push_undo_snapshot();
-
-                                let selected = self.editor.selected_actor_ids();
-                                if selected.len() > 1 && selected.contains(&grab.actor_id) {
-                                    let delta = grab.current_position - grab.start_position;
-                                    for id in selected {
-                                        if let Some(actor) = self.world.actors.get_mut(&id) {
-                                            actor.position += delta;
-                                        }
-                                    }
-                                    self.editor.needs_save = true;
-                                } else if let Some(actor) =
-                                    self.world.actors.get_mut(&grab.actor_id)
-                                {
-                                    actor.position = grab.current_position;
-                                    self.editor.needs_save = true;
-                                }
-                            }
+                            self.commit_actor_surface_drag(grab);
 
                             self.pending_actor_grab = None;
                             self.editor.clear_hover();
@@ -1636,7 +1590,7 @@ impl App {
                         let pdy = position.y - pending.start_mouse.1;
 
                         if pdx * pdx + pdy * pdy >= 25.0 {
-                            if let Some(target) = self.actor_drag_target() {
+                            if let Some(target) = self.actor_surface_drag_target(pending.actor_id) {
                                 self.editor.actor_grab_state =
                                     Some(crate::editor::ActorGrabState {
                                         actor_id: pending.actor_id,
@@ -1649,7 +1603,8 @@ impl App {
                             }
                         }
                     } else if self.editor.actor_grab_state.is_some() {
-                        if let Some(target) = self.actor_drag_target() {
+                        let actor_id = self.editor.actor_grab_state.as_ref().unwrap().actor_id;
+                        if let Some(target) = self.actor_surface_drag_target(actor_id) {
                             if let Some(grab) = self.editor.actor_grab_state.as_mut() {
                                 grab.current_position = target;
                             }
@@ -2280,6 +2235,43 @@ impl App {
             bounds_max,
             valid,
         })
+    }
+
+    fn actor_surface_drag_target(&self, actor_id: u64) -> Option<glam::Vec3> {
+        let surface = self.actor_drag_target()?;
+        let actor = self.world.actors.get(&actor_id)?;
+        let bounds = actor
+            .package
+            .as_deref()
+            .and_then(crate::engine::entity_package::get_package)
+            .and_then(|package| package.triangle_mesh_bounds());
+        Some(crate::editor::actor_placement::surface_position(
+            surface,
+            bounds,
+            actor.scale,
+            actor.rotation,
+        ))
+    }
+
+    fn commit_actor_surface_drag(&mut self, grab: crate::editor::ActorGrabState) {
+        if grab.current_position == grab.start_position
+            || !self.world.actors.contains_key(&grab.actor_id)
+        {
+            return;
+        }
+        self.push_undo_snapshot();
+        let selected = self.editor.selected_actor_ids();
+        if selected.len() > 1 && selected.contains(&grab.actor_id) {
+            let delta = grab.current_position - grab.start_position;
+            for id in selected {
+                if let Some(actor) = self.world.actors.get_mut(&id) {
+                    actor.position += delta;
+                }
+            }
+        } else if let Some(actor) = self.world.actors.get_mut(&grab.actor_id) {
+            actor.position = grab.current_position;
+        }
+        self.editor.needs_save = true;
     }
 
     fn actor_drag_target(&self) -> Option<glam::Vec3> {
@@ -4294,8 +4286,63 @@ mod tests {
     }
     #[test]
     fn actor_drag_commit_preserves_fractional_position() {
+        let mut app = App::new_for_tests(1280.0, 720.0);
+        let start = glam::Vec3::new(0.0, 4.0, 0.0);
+        let id = app.world.add_actor("Independent centered mesh", start);
+        let surface = glam::Vec3::new(1.75, 3.125, 3.5);
+        let scale = glam::Vec3::new(2.0, 3.0, 4.0);
+        let rotation = glam::Vec3::new(0.0, 0.0, std::f32::consts::FRAC_PI_2);
+        let target = crate::editor::actor_placement::surface_position(
+            surface,
+            Some((glam::Vec3::splat(-0.5), glam::Vec3::splat(0.5))),
+            scale,
+            rotation,
+        );
+        {
+            let actor = app.world.actors.get_mut(&id).unwrap();
+            actor.scale = scale;
+            actor.rotation = rotation;
+        }
+        app.commit_actor_surface_drag(crate::editor::ActorGrabState {
+            actor_id: id,
+            start_position: start,
+            current_position: target,
+        });
+        let actor = &app.world.actors[&id];
+        assert!((actor.position.y - 4.125).abs() < 0.0001);
+        assert_eq!((actor.position.x, actor.position.z), (surface.x, surface.z));
+        assert_eq!((actor.scale, actor.rotation), (scale, rotation));
+        assert_eq!(app.editor.history.undo_stack.len(), 1);
+        assert_eq!(app.editor.history.undo_stack[0].3[&id].position, start);
+        assert!(app.editor.needs_save);
+    }
+
+    #[test]
+    fn actor_surface_drag_preserves_group_offsets_and_one_undo() {
+        let mut app = App::new_for_tests(1280.0, 720.0);
+        let start = glam::Vec3::new(0.25, 2.5, -1.0);
+        let id = app.world.add_actor("First", start);
+        let offset = glam::Vec3::new(2.0, 1.0, 3.0);
+        let second = app.world.add_actor("Second", start + offset);
+        app.editor
+            .project_hierarchy
+            .create_actor_node(None, id)
+            .unwrap();
+        app.editor
+            .project_hierarchy
+            .create_actor_node(None, second)
+            .unwrap();
+        app.editor.select_actor(id);
+        app.editor.toggle_actor_selection(second);
         let target = glam::Vec3::new(1.75, 3.125, 3.5);
-        assert_eq!(target, glam::Vec3::new(1.75, 3.125, 3.5));
+        app.commit_actor_surface_drag(crate::editor::ActorGrabState {
+            actor_id: id,
+            start_position: start,
+            current_position: target,
+        });
+        assert_eq!(app.world.actors[&id].position, target);
+        assert_eq!(app.world.actors[&second].position - target, offset);
+        assert_eq!(app.editor.history.undo_stack.len(), 1);
     }
 
     #[test]

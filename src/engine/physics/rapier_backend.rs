@@ -3,6 +3,7 @@ use rapier3d::prelude::{
     ColliderBuilder, PhysicsWorld as RapierWorld, RigidBodyBuilder, RigidBodyHandle, Vector,
 };
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum BodyShape {
@@ -387,6 +388,136 @@ impl RigidSolver {
                 ));
             }
         }
+    }
+
+    pub fn move_character_against_actors(
+        &mut self,
+        id: u64,
+        from: Vec3,
+        target: Vec3,
+        orientation: Quat,
+        mut velocity: Vec3,
+        mass: f32,
+        actor_keys: &HashSet<u64>,
+    ) -> (Vec3, Vec3, bool) {
+        use rapier3d::parry::query::{ShapeCastOptions, cast_shapes};
+        use rapier3d::prelude::{Pose, Rotation};
+
+        let Some(&handle) = self.handles.get(&id) else {
+            return (target, velocity, false);
+        };
+        let body = &self.world.bodies[handle];
+        let parts: Vec<_> = body
+            .colliders()
+            .iter()
+            .filter_map(|handle| {
+                let collider = self.world.colliders.get(*handle)?;
+                Some((
+                    *collider.position_wrt_parent()?,
+                    collider.shared_shape().clone(),
+                ))
+            })
+            .collect();
+        if parts.is_empty() || !from.is_finite() || !target.is_finite() {
+            return (target, velocity, false);
+        }
+        let rotation =
+            Rotation::from_xyzw(orientation.x, orientation.y, orientation.z, orientation.w);
+        let mut position = from;
+        let mut remaining = target - from;
+        let mut grounded = false;
+        for _ in 0..8 {
+            if remaining.length_squared() < 1e-12 {
+                break;
+            }
+            let pose = Pose::from_parts(Vector::new(position.x, position.y, position.z), rotation);
+            let travel = Vector::new(remaining.x, remaining.y, remaining.z);
+            let mut closest = None;
+            let mut closest_time = 1.0_f32;
+            for (&key, &other_handle) in &self.handles {
+                if key == id || !actor_keys.contains(&key) {
+                    continue;
+                }
+                let other = &self.world.bodies[other_handle];
+                for other_collider in other.colliders() {
+                    let collider = &self.world.colliders[*other_collider];
+                    let Some(local_pose) = collider.position_wrt_parent() else {
+                        continue;
+                    };
+                    let other_pose = *other.position() * *local_pose;
+                    let other_bounds = collider.shape().compute_aabb(&other_pose);
+                    for (local, shape) in &parts {
+                        let start = pose * *local;
+                        let end = Pose::from_translation(travel) * start;
+                        let start_bounds = shape.compute_aabb(&start);
+                        let end_bounds = shape.compute_aabb(&end);
+                        let low = start_bounds.mins.min(end_bounds.mins) - Vector::splat(0.003);
+                        let high = start_bounds.maxs.max(end_bounds.maxs) + Vector::splat(0.003);
+                        if other_bounds.mins.x > high.x
+                            || other_bounds.maxs.x < low.x
+                            || other_bounds.mins.y > high.y
+                            || other_bounds.maxs.y < low.y
+                            || other_bounds.mins.z > high.z
+                            || other_bounds.maxs.z < low.z
+                        {
+                            continue;
+                        }
+                        let options = ShapeCastOptions {
+                            max_time_of_impact: closest_time,
+                            target_distance: 0.002,
+                            stop_at_penetration: false,
+                            ..Default::default()
+                        };
+                        let Ok(Some(hit)) = cast_shapes(
+                            &start,
+                            travel,
+                            shape.as_ref(),
+                            &other_pose,
+                            Vector::ZERO,
+                            collider.shape(),
+                            options,
+                        ) else {
+                            continue;
+                        };
+                        let n = other_pose.rotation * hit.normal2;
+                        let normal = Vec3::new(n.x, n.y, n.z).normalize_or_zero();
+                        if normal.length_squared() < 0.5 || remaining.dot(normal) >= -1e-7 {
+                            continue;
+                        }
+                        let point = other_pose * hit.witness2;
+                        closest_time = hit.time_of_impact;
+                        closest = Some((other_handle, normal, point));
+                    }
+                }
+            }
+            let Some((other_handle, normal, point)) = closest else {
+                position += remaining;
+                break;
+            };
+            position += remaining * closest_time + normal * 0.0001;
+            remaining *= 1.0 - closest_time;
+            remaining -= normal * remaining.dot(normal).min(0.0);
+            grounded |= normal.y > 0.65 && velocity.y <= 0.0;
+            let other = &mut self.world.bodies[other_handle];
+            if other.is_dynamic() {
+                let v = other.velocity_at_point(point);
+                let relative = velocity - Vec3::new(v.x, v.y, v.z);
+                let into = relative.dot(normal).min(0.0);
+                let char_inverse = 1.0 / mass.max(0.1);
+                let other_inverse = 1.0 / other.mass().max(0.001);
+                let impulse = -into / (char_inverse + other_inverse);
+                velocity += normal * (impulse * char_inverse);
+                let push = -normal * impulse;
+                other.apply_impulse_at_point(Vector::new(push.x, push.y, push.z), point, true);
+            } else {
+                velocity -= normal * velocity.dot(normal).min(0.0);
+            }
+        }
+        if let Some(body) = self.world.bodies.get_mut(handle) {
+            body.set_translation(Vector::new(from.x, from.y, from.z), true);
+            body.set_rotation(rotation, true);
+        }
+        (position, velocity, grounded)
     }
 
     pub fn add_static_triangles(&mut self, triangles: &[[Vec3; 3]], friction: f32) -> bool {

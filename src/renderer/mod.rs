@@ -2110,7 +2110,7 @@ float calculate_shadow_visibility(
 // the user-controlled camera shadow distance still illuminate normally.
 float point_shadow_visibility(vec3 ray, float light_range, float slot, vec3 normal) {
     if (slot < -0.5) { return 1.0; }
-    vec3 v = ray - normal * 0.045;
+    vec3 v = ray + normal * 0.045;
     vec3 a = abs(v);
     float forward = max(max(a.x, a.y), a.z);
     if (forward <= 0.10 || forward >= light_range) { return 1.0; }

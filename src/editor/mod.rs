@@ -3,6 +3,7 @@
 // Licensed under the AeoEngine Source-Available License.
 // See LICENSE in the repository root for the complete terms.
 pub(crate) mod actor_model_preview;
+pub(crate) mod actor_placement;
 pub(crate) mod animation_editor;
 pub(crate) mod animation_import;
 pub mod asset_management;

@@ -1801,7 +1801,6 @@ impl PhysicsWorld {
                             && col_enabled
                             && character_solid
                             && !character_entities.contains(&entity_id)
-                            && (self.rapier_runtime.is_none() || anchored)
                         {
                             let normal = -character_contact.normal;
                             let depth = character_contact.depth;
@@ -1816,7 +1815,7 @@ impl PhysicsWorld {
                             } else {
                                 1.0 / character_mass
                             };
-                            let entity_inverse = if anchored { 0.0 } else { 1.0 / entity_mass };
+                            let entity_inverse = if anchored || self.rapier_runtime.is_some() { 0.0 } else { 1.0 / entity_mass };
                             use super::rigid_contact::{Motion, resolve};
                             let mut character_motion = Motion {
                                 position: char_pos,

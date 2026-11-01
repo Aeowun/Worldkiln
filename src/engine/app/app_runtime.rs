@@ -848,6 +848,27 @@ impl App {
                     }
                 }
             }
+            let attached_children: HashSet<_> =
+                attachment_system.attached_children().into_iter().collect();
+            let (camera_forward, _) = gameplay_camera.get_horizontal_basis();
+            character_system.set_active_swim_look_direction(
+                gameplay_camera.swim_aim_y(),
+                glam::Vec2::new(camera_forward.x, camera_forward.z),
+            );
+            if step_jump && character_system.is_player_controller_enabled() {
+                character_system.try_surface_jump(6.5);
+            }
+            let character_started = capture_physics.then(std::time::Instant::now);
+            let contacted =
+                character_system.update_scripted_excluding(world, p_world, dt, &attached_children);
+            if let Some(started) = character_started {
+                self.development_capture.borrow_mut().record(
+                    "character",
+                    "movement_collision_cpu",
+                    started.elapsed(),
+                );
+            }
+            character_system.sync_entity_positions(entity_manager);
             let physics_started = capture_physics.then(std::time::Instant::now);
             let entity_physics_started = capture_physics.then(std::time::Instant::now);
             p_world.step_unified_rapier(
@@ -855,7 +876,7 @@ impl App {
                 gravity,
                 dt,
                 &character_entities,
-                Some(character_system),
+                Some(&mut *character_system),
                 Some(world),
             );
             if let Some(started) = physics_started {
@@ -878,27 +899,6 @@ impl App {
                 self.development_capture.borrow_mut().record(
                     "animation",
                     "entity_pose_cpu",
-                    started.elapsed(),
-                );
-            }
-
-            let attached_children: HashSet<_> =
-                attachment_system.attached_children().into_iter().collect();
-            let (camera_forward, _) = gameplay_camera.get_horizontal_basis();
-            character_system.set_active_swim_look_direction(
-                gameplay_camera.swim_aim_y(),
-                glam::Vec2::new(camera_forward.x, camera_forward.z),
-            );
-            if step_jump && character_system.is_player_controller_enabled() {
-                character_system.try_surface_jump(6.5);
-            }
-            let character_started = capture_physics.then(std::time::Instant::now);
-            let contacted =
-                character_system.update_scripted_excluding(world, p_world, dt, &attached_children);
-            if let Some(started) = character_started {
-                self.development_capture.borrow_mut().record(
-                    "character",
-                    "movement_collision_cpu",
                     started.elapsed(),
                 );
             }

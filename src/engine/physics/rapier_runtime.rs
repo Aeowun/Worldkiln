@@ -128,7 +128,7 @@ impl PhysicsWorld {
         gravity: Vec3,
         dt: f32,
         character_entities: &HashSet<EntityId>,
-        characters: Option<&crate::character::CharacterSystem>,
+        mut characters: Option<&mut crate::character::CharacterSystem>,
         terrain: Option<&World>,
     ) {
         if !dt.is_finite() || dt <= 0.0 {
@@ -161,6 +161,7 @@ impl PhysicsWorld {
             solver
         };
         let mut wanted = HashSet::new();
+        let mut solid_actor_keys = HashSet::new();
 
         for body in &self.bodies {
             if body.anchored || !body.solid {
@@ -204,6 +205,7 @@ impl PhysicsWorld {
             }
             let active_character = if character_entities.contains(&entity.id) {
                 characters
+                    .as_deref()
                     .and_then(|cs| cs.get_character_for_entity(entity.id))
                     .filter(|ch| {
                         ch.collision_enabled
@@ -223,6 +225,9 @@ impl PhysicsWorld {
             }
             let id = actor_key(entity.id);
             wanted.insert(id);
+            if !kinematic && p.solid && p.collision_enabled {
+                solid_actor_keys.insert(id);
+            }
             let q = active_character
                 .map_or_else(|| orientation(entity.rotation), |ch| ch.transform.rotation);
             let center =
@@ -277,6 +282,67 @@ impl PhysicsWorld {
             }
         }
         solver.retain_dynamic(&wanted);
+
+        if let Some(characters) = characters.as_deref_mut() {
+            let motions: Vec<_> = characters
+                .get_active_characters()
+                .filter_map(|ch| {
+                    let entity = characters.get_entity_for_character(ch.id)?;
+                    if !character_entities.contains(&entity)
+                        || !ch.collision_enabled
+                        || !ch.collision_solid
+                    {
+                        return None;
+                    }
+                    Some((
+                        entity,
+                        *characters.collision_step_origins.get(&ch.id)?,
+                        ch.transform.position,
+                        ch.movement.velocity,
+                        ch.transform.rotation,
+                    ))
+                })
+                .collect();
+            for (entity, origin, target, velocity, rotation) in motions {
+                let mass = manager.get_physics(entity).map_or(1.0, |p| p.mass);
+                let (position, velocity, grounded) = solver.move_character_against_actors(
+                    actor_key(entity),
+                    origin,
+                    target,
+                    rotation,
+                    velocity,
+                    mass,
+                    &solid_actor_keys,
+                );
+                if let Some(ch) = characters.get_character_for_entity_mut(entity) {
+                    let previous = ch.transform.position;
+                    ch.transform.position = position;
+                    ch.movement.velocity = velocity;
+                    ch.movement.is_grounded |= grounded;
+                    if (position - previous).length_squared() > 1e-12 {
+                        let mut touched = HashSet::new();
+                        crate::character::collision::resolve_static_voxel_collisions(
+                            ch,
+                            self,
+                            &mut touched,
+                            previous,
+                        );
+                        if let Some(world) = terrain {
+                            if let Some((position, _)) = crate::character::collider::sweep_terrain(
+                                self,
+                                world,
+                                ch,
+                                previous,
+                                ch.transform.position,
+                            ) {
+                                ch.transform.position = position;
+                            }
+                        }
+                    }
+                    solver.sync_kinematic_actor(actor_key(entity), ch.transform.position, rotation);
+                }
+            }
+        }
 
         if let Some(world) = terrain {
             let mut new_patches = Vec::new();
@@ -383,6 +449,260 @@ impl PhysicsWorld {
         }
         self.rapier_runtime = Some(solver);
         self.rebuild_dynamic_body_index();
+    }
+}
+
+#[cfg(test)]
+mod character_motion_tests {
+    use super::*;
+    use crate::character::CharacterSystem;
+    use crate::engine::collision_geometry::{self, ColliderInstance};
+    use std::sync::Arc;
+
+    fn scene(
+        shape: CollisionShape,
+        anchored: bool,
+    ) -> (
+        World,
+        PhysicsWorld,
+        EntityManager,
+        CharacterSystem,
+        EntityId,
+        EntityId,
+    ) {
+        let world = World::new();
+        let physics = PhysicsWorld::new();
+        let mut manager = EntityManager::new();
+        let mut characters = CharacterSystem::new();
+        let moving = manager.create_entity("Character");
+        manager.get_physics_mut(moving).unwrap().enabled = false;
+        let ch = characters.spawn_character(Vec3::new(-2.0, 0.0, 0.0), None);
+        characters.associate_entity(moving, ch);
+        {
+            let ch = characters.get_character_for_entity_mut(moving).unwrap();
+            ch.collision_geometry = Some(ColliderInstance {
+                shapes: Arc::new(vec![CollisionShape::Box {
+                    min: [-0.25, 0.0, -0.25],
+                    max: [0.25, 1.6, 0.25],
+                }]),
+                rotation: Vec3::ZERO,
+                scale: Vec3::ONE,
+            });
+            ch.uses_authored_collider = true;
+            ch.movement.gravity_scale = 0.0;
+            ch.movement.controller_enabled = false;
+        }
+        let obstacle = manager.create_entity("Obstacle");
+        let actor = manager.get_entity_mut(obstacle).unwrap();
+        actor.position = Vec3::new(0.0, 0.8, 0.0);
+        actor.physics.enabled = true;
+        actor.physics.anchored = anchored;
+        actor.physics.collider = Some(ColliderInstance {
+            shapes: Arc::new(vec![shape]),
+            rotation: Vec3::ZERO,
+            scale: Vec3::ONE,
+        });
+        let (lo, hi) =
+            collision_geometry::envelope(actor.physics.collider.as_ref().unwrap()).unwrap();
+        actor.physics.size = (hi - lo).max(Vec3::splat(0.001));
+        actor.physics.offset = (hi + lo) * 0.5;
+        (world, physics, manager, characters, moving, obstacle)
+    }
+
+    fn tick(
+        world: &World,
+        physics: &mut PhysicsWorld,
+        manager: &mut EntityManager,
+        characters: &mut CharacterSystem,
+        moving: EntityId,
+        velocity: Vec3,
+    ) -> Vec3 {
+        characters
+            .get_character_for_entity_mut(moving)
+            .unwrap()
+            .movement
+            .velocity = velocity;
+        characters.update_scripted(world, physics, 1.0 / 60.0);
+        characters.sync_entity_positions(manager);
+        physics.step_unified_rapier(
+            manager,
+            Vec3::ZERO,
+            1.0 / 60.0,
+            &HashSet::from([moving]),
+            Some(&mut *characters),
+            Some(world),
+        );
+        let swept_position = characters
+            .get_character_for_entity(moving)
+            .unwrap()
+            .transform
+            .position;
+        characters.sync_entity_positions(manager);
+        physics.process_entity_contacts_and_collisions_with_world(
+            manager,
+            Some(&mut *characters),
+            world,
+        );
+        characters.sync_entity_positions(manager);
+        swept_position
+    }
+
+    #[test]
+    fn character_motion_sweeps_primitive_and_mesh_actors_at_fast_speeds() {
+        for shape in [
+            CollisionShape::Sphere {
+                center: [0.0; 3],
+                radius: 0.5,
+            },
+            CollisionShape::Box {
+                min: [-0.05, -0.8, -2.0],
+                max: [0.05, 0.8, 2.0],
+            },
+            CollisionShape::Capsule {
+                start: [0.0, -0.4, 0.0],
+                end: [0.0, 0.4, 0.0],
+                radius: 0.2,
+            },
+            CollisionShape::Triangles {
+                vertices: vec![
+                    [[0.0, -0.8, -2.0], [0.0, 0.8, -2.0], [0.0, -0.8, 2.0]],
+                    [[0.0, 0.8, -2.0], [0.0, 0.8, 2.0], [0.0, -0.8, 2.0]],
+                ],
+            },
+        ] {
+            for speed in [5.5_f32, 30.0, 60.0, 180.0] {
+                let (world, mut physics, mut manager, mut characters, moving, obstacle) =
+                    scene(shape.clone(), true);
+                for _ in 0..60 {
+                    let swept_position = tick(
+                        &world,
+                        &mut physics,
+                        &mut manager,
+                        &mut characters,
+                        moving,
+                        Vec3::X * speed,
+                    );
+                    let character = characters.get_character_for_entity(moving).unwrap();
+                    assert!(
+                        character.transform.position.x < -0.24,
+                        "Character crossed {:?} at speed {}: {:?}; swept position {:?}",
+                        shape,
+                        speed,
+                        character.transform.position,
+                        swept_position
+                    );
+                    let actor = manager.get_entity(obstacle).unwrap();
+                    let penetration = collision_geometry::between(
+                        &character.contact_collider().unwrap(),
+                        character.transform.position,
+                        actor.physics.collider.as_ref().unwrap(),
+                        actor.position,
+                    );
+                    assert!(penetration.is_none_or(|p| p.depth < 0.005));
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn character_motion_pushes_dynamic_sphere_without_clipping_through() {
+        for speed in [2.5_f32, 5.5, 30.0, 60.0, 180.0] {
+            let (world, mut physics, mut manager, mut characters, moving, obstacle) = scene(
+                CollisionShape::Sphere {
+                    center: [0.0; 3],
+                    radius: 0.5,
+                },
+                false,
+            );
+            for _ in 0..100 {
+                tick(
+                    &world,
+                    &mut physics,
+                    &mut manager,
+                    &mut characters,
+                    moving,
+                    Vec3::X * speed,
+                );
+                let ch = characters.get_character_for_entity(moving).unwrap();
+                let actor = manager.get_entity(obstacle).unwrap();
+                assert!(
+                    ch.transform.position.x < actor.position.x,
+                    "Character passed through dynamic Actor at {speed}"
+                );
+                let penetration = collision_geometry::between(
+                    &ch.contact_collider().unwrap(),
+                    ch.transform.position,
+                    actor.physics.collider.as_ref().unwrap(),
+                    actor.position,
+                );
+                assert!(
+                    penetration.is_none_or(|p| p.depth < 0.005),
+                    "persistent penetration at speed {speed}: {penetration:?}"
+                );
+            }
+            let actor = manager.get_entity(obstacle).unwrap();
+            assert!(
+                actor.position.x > 0.1 && actor.physics.velocity.x > 0.01,
+                "Actor did not remain pushable at speed {speed}"
+            );
+        }
+    }
+
+    #[test]
+    fn character_motion_keeps_wall_slide_and_disabled_collision_semantics() {
+        let wall = CollisionShape::Box {
+            min: [-0.05, -0.8, -20.0],
+            max: [0.05, 0.8, 20.0],
+        };
+        let (world, mut physics, mut manager, mut characters, moving, _) =
+            scene(wall.clone(), true);
+        tick(
+            &world,
+            &mut physics,
+            &mut manager,
+            &mut characters,
+            moving,
+            Vec3::new(180.0, 0.0, 60.0),
+        );
+        let ch = characters.get_character_for_entity(moving).unwrap();
+        assert!(ch.transform.position.x < -0.299 && ch.transform.position.z > 0.9);
+        for flag in 0..4 {
+            let (world, mut physics, mut manager, mut characters, moving, obstacle) =
+                scene(wall.clone(), true);
+            match flag {
+                0 => manager.get_physics_mut(obstacle).unwrap().collision_enabled = false,
+                1 => manager.get_physics_mut(obstacle).unwrap().solid = false,
+                2 => {
+                    characters
+                        .get_character_for_entity_mut(moving)
+                        .unwrap()
+                        .collision_solid = false
+                }
+                _ => {
+                    characters
+                        .get_character_for_entity_mut(moving)
+                        .unwrap()
+                        .collision_enabled = false
+                }
+            }
+            tick(
+                &world,
+                &mut physics,
+                &mut manager,
+                &mut characters,
+                moving,
+                Vec3::X * 180.0,
+            );
+            assert!(
+                characters
+                    .get_character_for_entity(moving)
+                    .unwrap()
+                    .transform
+                    .position
+                    .x
+                    > 0.9
+            );
+        }
     }
 }
 
@@ -536,7 +856,7 @@ mod unified_runtime_tests {
                 Vec3::ZERO,
                 1.0 / 60.0,
                 &ids,
-                Some(&characters),
+                Some(&mut characters),
                 None,
             );
         }
@@ -571,7 +891,7 @@ mod unified_runtime_tests {
             Vec3::ZERO,
             1.0 / 60.0,
             &HashSet::from([id]),
-            Some(&characters),
+            Some(&mut characters),
             None,
         );
         assert!(
