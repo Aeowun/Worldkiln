@@ -23,11 +23,35 @@ use crate::scripting::value::{HandleKind, Value};
 use crate::world::World;
 
 use super::platform::{DesktopRuntimeServices, GameLifecycleEvent, GameRuntimeServices};
+
+fn report_standalone_error(message: &str) {
+    eprintln!("{message}");
+    let root = std::env::var_os("LOCALAPPDATA")
+        .or_else(|| std::env::var_os("XDG_DATA_HOME"))
+        .map(PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let directory = root.join("Aeowun").join("Games").join("Logs");
+    if std::fs::create_dir_all(&directory).is_ok() {
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(directory.join("runtime-errors.log"))
+        {
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|time| time.as_secs())
+                .unwrap_or(0);
+            let _ = std::io::Write::write_all(&mut file, format!("[{timestamp}] {message}\n").as_bytes());
+        }
+    }
+}
+
 pub struct GameRuntime {
     platform_services: Box<dyn GameRuntimeServices>,
     suspended: bool,
     pub renderer: Renderer,
     pub world: World,
+    pub project_hierarchy: crate::project::ProjectHierarchy,
 
     pub physics_clock: PhysicsClock,
     pub physics_world: PhysicsWorld,
@@ -81,6 +105,7 @@ impl GameRuntime {
             suspended: false,
             renderer,
             world: World::new(),
+            project_hierarchy: crate::project::ProjectHierarchy::new(),
 
             physics_clock: PhysicsClock::new(),
             physics_world: PhysicsWorld::new(),
@@ -125,6 +150,13 @@ impl GameRuntime {
         self.renderer.set_project_asset_root(Some(&project_path));
 
         self.project_path = Some(project_path.clone());
+        self.project_hierarchy = match crate::project::metadata::load_project_metadata(&project_path) {
+            Ok(hierarchy) => hierarchy,
+            Err(error) => {
+                eprintln!("[ERROR] Failed to load authored project hierarchy: {error}");
+                crate::project::ProjectHierarchy::new()
+            }
+        };
 
         self.save_state = match self.platform_services.load_save_state(&project_path) {
             Ok(state) => Some(state),
@@ -292,6 +324,8 @@ impl GameRuntime {
                         entity_id,
                         actor.physics.anchored || !actor.physics.enabled,
                     );
+                    self.character_system
+                        .configure_authored_collision(entity_id, &actor);
                     if let Some(character) = self
                         .character_system
                         .get_character_for_entity_mut(entity_id)
@@ -391,12 +425,12 @@ impl GameRuntime {
                         .map(|d| d.key.as_str())
                         .unwrap_or("main_ui"),
                 ) {
-                    eprintln!("[ERROR] Failed to load authored UI: {}", error);
+                    report_standalone_error(&format!("[ERROR] Failed to load authored UI: {error}"));
                 }
             }
 
             Err(error) => {
-                eprintln!("[ERROR] Failed to load project UI: {}", error);
+                report_standalone_error(&format!("[ERROR] Failed to load project UI: {error}"));
             }
         }
 
@@ -449,7 +483,7 @@ impl GameRuntime {
                 };
 
                 if let Err(error) = scene.start(&mut context) {
-                    eprintln!("[ERROR] Scripting startup error: {}", error);
+                    report_standalone_error(&format!("[ERROR] Scripting startup error: {error}"));
                 } else {
                     if has_player {
                         let player_value = Value::Namespace("player".to_string());
@@ -458,7 +492,7 @@ impl GameRuntime {
 
                         let input_value = Value::Namespace("input".to_string());
 
-                        if let Ok(object) = scene.instantiate_package_object(
+                        match scene.instantiate_package_object(
                             "controllers",
                             &controller_name,
                             vec![
@@ -468,27 +502,37 @@ impl GameRuntime {
                             ],
                             &mut context,
                         ) {
-                            self.controller_object = Some(object);
+                            Ok(object) => self.controller_object = Some(object),
+                            Err(error) => report_standalone_error(&format!(
+                                "[ERROR] Player controller package initialization failed: {error}"
+                            )),
                         }
 
                         let camera_name = context.engine.get_camera_script();
-                        if let Ok(object) = scene.instantiate_package_object(
+                        match scene.instantiate_package_object(
                             "cameras",
                             &camera_name,
                             vec![player_value],
                             &mut context,
                         ) {
-                            self.camera_object = Some(object);
-                            self.world.runtime_camera_applied = Some(camera_name);
+                            Ok(object) => {
+                                self.camera_object = Some(object);
+                                self.world.runtime_camera_applied = Some(camera_name);
+                            }
+                            Err(error) => report_standalone_error(&format!(
+                                "[ERROR] Player camera package initialization failed: {error}"
+                            )),
                         }
                     }
 
                     self.script_scene = Some(scene);
+                    self.script_pending_events
+                        .push(("level_loaded".to_string(), vec![]));
                 }
             }
 
             Err(error) => {
-                eprintln!("[ERROR] Scripting load error: {}", error);
+                report_standalone_error(&format!("[ERROR] Scripting load error: {error}"));
             }
         }
     }
@@ -580,6 +624,29 @@ impl GameRuntime {
         if self.suspended {
             return;
         }
+        if self.save_state.as_mut().is_some_and(|state| state.take_restart_request()) {
+            if let Some(project_path) = self.project_path.clone() {
+                self.stop_scripting();
+                if let Some(state) = self.save_state.as_mut() {
+                    if let Err(error) = state.wipe() {
+                        report_standalone_error(&format!(
+                            "[ERROR] Game restart could not reset save data: {error}"
+                        ));
+                        return;
+                    }
+                }
+                self.audio_system.stop_all();
+                self.entity_manager.clear();
+                self.actor_system.clear();
+                self.character_system.clear();
+                self.world = World::new();
+                self.physics_world = PhysicsWorld::new();
+                self.physics_clock.reset();
+                self.gameplay_camera.spring_arm.reset();
+                self.load_project(project_path);
+            }
+            return;
+        }
         self.world.update_particles(frame_time);
         let key_state = self.keys_down.clone();
 
@@ -618,7 +685,7 @@ impl GameRuntime {
             };
 
             if let Err(error) = scene.update(frame_time, &mut context) {
-                eprintln!("[ERROR] Scripting runtime error: {}", error);
+                report_standalone_error(&format!("[ERROR] Scripting runtime error: {error}"));
             }
 
             for record in scene.drain_output() {
@@ -648,7 +715,7 @@ impl GameRuntime {
                     String::new()
                 };
 
-                eprintln!(
+                let message = format!(
                     "[{}] {}{}{}{}",
                     record.severity.name(),
                     script_part,
@@ -656,9 +723,23 @@ impl GameRuntime {
                     context_part,
                     record.message
                 );
+                if matches!(
+                    record.severity,
+                    crate::scripting::log::LogSeverity::Error
+                        | crate::scripting::log::LogSeverity::Warning
+                ) {
+                    report_standalone_error(&message);
+                } else {
+                    eprintln!("{message}");
+                }
             }
         }
 
+        for ((material, layer), alpha) in std::mem::take(&mut self.world.runtime_material_changes) {
+            if let Err(error) = self.renderer.set_runtime_material_layer_alpha(&material, &layer, alpha) {
+                eprintln!("[ERROR] AeoScript Material: {error}");
+            }
+        }
         self.physics_world.sync_with_world(&mut self.world);
 
         let gravity = self.world.gravity;
@@ -781,6 +862,25 @@ impl GameRuntime {
             let p_world = &mut self.physics_world;
 
             let character_entities: HashSet<_> = character_system.associated_entity_ids().collect();
+            if dt.is_finite() && dt > 0.0 {
+                for entity in entity_manager.iter_mut() {
+                    if !entity.enabled
+                        || !entity.physics.enabled
+                        || entity.physics.anchored
+                        || !entity.physics.mass.is_finite()
+                        || entity.physics.mass <= 0.0
+                        || character_entities.contains(&entity.id)
+                    {
+                        continue;
+                    }
+                    let flow = world.water_current_at(entity.position);
+                    if flow.length_squared() > 0.000001 {
+                        let relative = flow
+                            - glam::Vec3::new(entity.physics.velocity.x, 0.0, entity.physics.velocity.z);
+                        entity.physics.accumulated_force += relative * entity.physics.mass * 2.0;
+                    }
+                }
+            }
             let attached_children: HashSet<_> =
                 attachment_system.attached_children().into_iter().collect();
             let (camera_forward, _) = gameplay_camera.get_horizontal_basis();
@@ -791,8 +891,13 @@ impl GameRuntime {
             if step_jump && character_system.is_player_controller_enabled() {
                 character_system.try_surface_jump(6.5);
             }
-            let contacted =
-                character_system.update_scripted_excluding(world, p_world, dt, &attached_children);
+            let contacted = character_system.update_scripted_runtime(
+                world,
+                entity_manager,
+                p_world,
+                dt,
+                &attached_children,
+            );
             character_system.sync_entity_positions(entity_manager);
             p_world.step_unified_rapier(
                 entity_manager,
@@ -848,7 +953,11 @@ impl GameRuntime {
             }
 
             let entity_contacts = p_world
-                .process_entity_contacts_and_collisions(entity_manager, Some(character_system));
+                .process_entity_contacts_and_collisions_with_world(
+                    entity_manager,
+                    Some(character_system),
+                    world,
+                );
             let player_contact_entity = entity_manager.lookup_entity("Player");
 
             if let Some(scene) = scene_opt.as_mut() {
@@ -886,11 +995,19 @@ impl GameRuntime {
                 if let Err(error) =
                     scene.on_entity_contacts(&entity_contacts, player_contact_entity, &mut context)
                 {
-                    eprintln!("[ERROR] Entity contact error: {}", error);
+                    report_standalone_error(&format!("[ERROR] Entity contact error: {error}"));
                 }
             }
 
             attachment_system.update(entity_manager, character_system);
+            attachment_system.update_spatial(world, entity_manager, character_system);
+            crate::engine::attachment::AttachmentSystem::update_authored_sources(
+                &self.project_hierarchy,
+                world,
+                actor_system,
+                entity_manager,
+                character_system,
+            );
             character_system.sync_entity_positions(entity_manager);
 
             if let Some(player_entity_id) = entity_manager.lookup_entity("Player") {
@@ -1028,7 +1145,7 @@ impl GameRuntime {
             for &cell_id in &contacted_this_frame {
                 if !self.script_contacted_last_frame.contains(&cell_id) {
                     if let Err(error) = scene.on_player_overlap(cell_id, true, &mut context) {
-                        eprintln!("[ERROR] Overlap start error: {}", error);
+                        report_standalone_error(&format!("[ERROR] Overlap start error: {error}"));
                     }
                 }
             }
@@ -1036,7 +1153,7 @@ impl GameRuntime {
             for &cell_id in &self.script_contacted_last_frame {
                 if !contacted_this_frame.contains(&cell_id) {
                     if let Err(error) = scene.on_player_overlap(cell_id, false, &mut context) {
-                        eprintln!("[ERROR] Overlap end error: {}", error);
+                        report_standalone_error(&format!("[ERROR] Overlap end error: {error}"));
                     }
                 }
             }
@@ -1045,7 +1162,7 @@ impl GameRuntime {
                 if let Err(error) =
                     scene.on_character_contact(&touch_contacts_this_frame, &mut context)
                 {
-                    eprintln!("[ERROR] Scripting contact event error: {}", error);
+                    report_standalone_error(&format!("[ERROR] Scripting contact event error: {error}"));
                 }
             }
         }

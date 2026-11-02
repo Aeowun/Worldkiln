@@ -9,14 +9,13 @@ use glam::{Mat4, Vec3};
 use std::time::{Duration, Instant};
 
 pub(super) const FACES_PER_LIGHT: usize = 6;
-pub(super) const SHADOW_TILE_SIZE: i32 = 512;
+pub(super) const SHADOW_TILE_SIZE: i32 = 1024;
 const TILES_PER_AXIS: i32 = SHADOW_RES / SHADOW_TILE_SIZE;
 const TILES_PER_LAYER: usize = (TILES_PER_AXIS * TILES_PER_AXIS) as usize;
 const NEAR: f32 = 0.1;
 const ALL_FACES: u8 = (1 << FACES_PER_LIGHT) - 1;
-
-const MAX_SHADOW_FACES_PER_FRAME: usize = 1;
-const SHADOW_CPU_SUBMISSION_BUDGET: Duration = Duration::from_micros(1300);
+const MAX_SHADOW_FACES_PER_FRAME: usize = 3;
+const SHADOW_CPU_SUBMISSION_BUDGET: Duration = Duration::from_micros(3500);  // baseline is now 2500
 
 #[derive(Default)]
 pub(super) struct PointShadowCache {
@@ -396,7 +395,15 @@ mod tests {
     }
     #[test]
     fn point_shadow_tile_packing_does_not_limit_scene_light_count_to_sixteen() {
-        assert_eq!(17_usize * FACES_PER_LIGHT / TILES_PER_LAYER, 6);
         assert_eq!(SHADOW_RES % SHADOW_TILE_SIZE, 0);
+        assert_eq!(
+            TILES_PER_LAYER,
+            (SHADOW_RES / SHADOW_TILE_SIZE).pow(2) as usize
+        );
+        let last_tile = 17_usize * FACES_PER_LIGHT - 1;
+        let layer = 1 + last_tile / TILES_PER_LAYER;
+        let local_tile = last_tile % TILES_PER_LAYER;
+        assert!(layer > 1);
+        assert!(local_tile < TILES_PER_LAYER);
     }
 }

@@ -1206,16 +1206,28 @@ impl Editor {
         if package.trim().is_empty() || !position.is_finite() {
             return Err("Invalid Actor package or placement location".to_string());
         }
+        let asset = crate::engine::entity_package::get_package(package);
+        let mut position = position;
+        position.y = crate::editor::actor_placement::surface_placement_y(
+            position.y,
+            asset
+                .as_ref()
+                .and_then(|asset| asset.triangle_mesh_bounds()),
+            1.0,
+            glam::Vec3::ZERO,
+            0.0,
+        );
         let previous = self.create_snapshot(world);
-        let display_name = crate::engine::entity_package::get_package(package)
+        let display_name = asset
+            .as_ref()
             .map(|asset| asset.metadata.name.clone())
             .unwrap_or_else(|| package.to_owned());
         let actor_id = world.add_actor(display_name, position);
         if let Some(actor) = world.actors.get_mut(&actor_id) {
             actor.package = Some(package.to_owned());
-            if let Some(pack) = crate::engine::entity_package::get_package(package) {
-                if let Some((min, max)) = pack.triangle_mesh_bounds() {
-                    crate::engine::collision_geometry::set_actor_package_collision(actor, &pack);
+            if let Some(pack) = asset.as_ref() {
+                if pack.triangle_mesh_bounds().is_some() {
+                    crate::engine::collision_geometry::set_actor_package_collision(actor, pack);
                 }
             }
         }
@@ -1434,6 +1446,17 @@ impl Editor {
         if project_path.as_deref() != Some(payload.project_root.as_path()) {
             return;
         }
+        let asset = crate::engine::entity_package::get_package(&payload.package);
+        let mut display_position = position;
+        display_position.y = crate::editor::actor_placement::surface_placement_y(
+            position.y,
+            asset
+                .as_ref()
+                .and_then(|asset| asset.triangle_mesh_bounds()),
+            1.0,
+            glam::Vec3::ZERO,
+            0.0,
+        );
         let painter = ctx
             .layer_painter(egui::LayerId::new(
                 egui::Order::Foreground,
@@ -1462,7 +1485,7 @@ impl Editor {
             egui::Align2::LEFT_TOP,
             format!(
                 "Drop {} at {:.1}, {:.1}, {:.1}",
-                payload.package, position.x, position.y, position.z
+                payload.package, display_position.x, display_position.y, display_position.z
             ),
             egui::TextStyle::Body.resolve(&ctx.style()),
             color,

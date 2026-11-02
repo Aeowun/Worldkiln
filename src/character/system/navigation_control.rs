@@ -361,6 +361,7 @@ pub(super) fn apply_navigation_intent(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::entity::EntityManager;
     use crate::engine::physics::PhysicsWorld;
     use crate::world::{CellType, WorldCoord};
 
@@ -445,6 +446,66 @@ mod tests {
         assert!(system.set_entity_horizontal_velocity(entity_id, -1.0, 0.0));
         assert!(!system.is_entity_navigating(entity_id));
         assert_eq!(system.get_entity_velocity(entity_id).unwrap().x, -1.0);
+    }
+
+    #[test]
+    fn runtime_navigation_keeps_collision_snapshot_between_script_and_movement_ticks() {
+        let mut world = flat_world();
+        let prop_position = Vec3::new(4.5, 1.5, 5.5);
+        let authored_prop = world.add_actor("static_prop", prop_position);
+        let actor = world.actors.get_mut(&authored_prop).unwrap();
+        actor.physics.enabled = true;
+        actor.physics.anchored = true;
+        actor.physics.collision_size = Vec3::ONE;
+
+        let mut entities = EntityManager::new();
+        let runtime_prop = entities.create_entity("static_prop");
+        let prop = entities.get_entity_mut(runtime_prop).unwrap();
+        prop.position = prop_position;
+        prop.physics.enabled = true;
+        prop.physics.anchored = true;
+        prop.physics.size = Vec3::ONE;
+        assert_ne!(authored_prop, runtime_prop.0);
+
+        let entity_id = entities.create_entity("walker");
+        let mut system = CharacterSystem::new();
+        let character_id = system.spawn_character(Vec3::new(0.5, 1.0, 1.5), None);
+        system.associate_entity(entity_id, character_id);
+        let mut physics = PhysicsWorld::new();
+        physics.register_from_world(&world);
+        {
+            let _geometry = crate::navigation::runtime_collision_context(&world, &entities, &system);
+            system
+                .begin_entity_navigation(entity_id, &world, Vec3::new(7.5, 1.0, 1.5), 3.0, 0.05)
+                .unwrap();
+        }
+        for _ in 0..1200 {
+            {
+                let _geometry =
+                    crate::navigation::runtime_collision_context(&world, &entities, &system);
+                system.tick_navigation_builds(&world);
+            }
+            system.update_scripted_runtime(
+                &world,
+                &entities,
+                &mut physics,
+                1.0 / 60.0,
+                &Default::default(),
+            );
+            system.sync_entity_positions(&mut entities);
+            if !system.is_entity_navigating(entity_id) {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+        let position = system.get_character_for_entity(entity_id).unwrap().transform.position;
+        assert!(
+            (position.x - 7.5).abs() < 0.15,
+            "navigation did not reach its target: {position:?}"
+        );
+        assert_eq!(system.drain_navigation_finished(), vec![entity_id]);
+        assert!(system.drain_navigation_failed().is_empty());
+        assert!(world.navigation_runtime_geometry.lock().unwrap().is_none());
     }
 
     #[test]

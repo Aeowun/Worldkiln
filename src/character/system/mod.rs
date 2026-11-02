@@ -20,7 +20,7 @@ use super::collision::{
 };
 use super::movement::{JUMP_IMPULSE, MovementState, SwimMode};
 use super::terrain_motion::{resolve_terrain_movement, slide_velocity_with_limit, surface_contact};
-use crate::engine::entity::EntityId;
+use crate::engine::entity::{EntityId, EntityManager};
 use crate::navigation::{NavigationAgent, NavigationGrid};
 use crate::world::World;
 use glam::{Quat, Vec2};
@@ -217,6 +217,18 @@ impl CharacterSystem {
         dt: f32,
     ) -> HashSet<(EntityId, u64)> {
         self.update_scripted_excluding(world, physics_world, dt, &HashSet::new())
+    }
+
+    pub fn update_scripted_runtime(
+        &mut self,
+        world: &World,
+        entities: &EntityManager,
+        physics_world: &mut crate::engine::physics::PhysicsWorld,
+        dt: f32,
+        externally_transformed: &HashSet<EntityId>,
+    ) -> HashSet<(EntityId, u64)> {
+        let _geometry = crate::navigation::runtime_collision_context(world, entities, self);
+        self.update_scripted_excluding(world, physics_world, dt, externally_transformed)
     }
 
     pub fn update_scripted_excluding(

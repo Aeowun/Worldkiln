@@ -859,8 +859,13 @@ impl App {
                 character_system.try_surface_jump(6.5);
             }
             let character_started = capture_physics.then(std::time::Instant::now);
-            let contacted =
-                character_system.update_scripted_excluding(world, p_world, dt, &attached_children);
+            let contacted = character_system.update_scripted_runtime(
+                world,
+                entity_manager,
+                p_world,
+                dt,
+                &attached_children,
+            );
             if let Some(started) = character_started {
                 self.development_capture.borrow_mut().record(
                     "character",

@@ -116,7 +116,7 @@ impl Renderer {
         const CHARACTER_CAMERA_HIDE_DISTANCE: f32 = 2.0;
 
         let light_space_matrix =
-            self.calculate_light_space_matrix(world.lighting.global_light_direction, camera_pos);
+            self.calculate_light_space_matrix_with_range(world.lighting.global_light_direction, camera_pos, 3.0);
         let render_settings = self.active_lighting_settings();
         let render_shadows =
             world.lighting.shadows_enabled && render_settings.shadow_method != ShadowMethod::Off;
@@ -209,7 +209,7 @@ impl Renderer {
                         continue;
                     }
 
-                    let model = Mat4::from_translation(body.position);
+                    let model = super::physics_body_model_matrix(body);
 
                     gl::UniformMatrix4fv(
                         self.shadow_model_location,
@@ -322,7 +322,7 @@ impl Renderer {
                     for body in physics.bodies.iter().filter(|body| body.solid) {
                         let radius = body.size.abs() * 0.5 + Vec3::splat(1.0);
                         if !light_frustum.intersects_aabb(body.position - radius, body.position + radius) { continue; }
-                        let model = Mat4::from_translation(body.position);
+                        let model = super::physics_body_model_matrix(body);
                         gl::UniformMatrix4fv(renderer.shadow_model_location, 1, gl::FALSE,
                             model.to_cols_array().as_ptr());
                         gl::DrawArrays(gl::TRIANGLES, first, count);
@@ -573,7 +573,7 @@ impl Renderer {
                     body.color_rgb.z,
                 );
 
-                let model = Mat4::from_translation(body.position);
+                let model = super::physics_body_model_matrix(body);
 
                 gl::UniformMatrix4fv(model_location, 1, gl::FALSE, model.to_cols_array().as_ptr());
 

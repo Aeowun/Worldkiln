@@ -283,7 +283,7 @@ pub fn run_game(
                 let splash_active = splash_started.elapsed().as_secs_f32() < 7.0;
 
                 if !splash_active {
-                    game_runtime.update(dt.min(0.1));
+                    game_runtime.update(dt);
                 }
 
                 let current_mouse = (

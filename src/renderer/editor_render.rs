@@ -400,7 +400,7 @@ impl Renderer {
                             continue;
                         }
 
-                        let model = Mat4::from_translation(body.position);
+                        let model = super::physics_body_model_matrix(body);
 
                         gl::UniformMatrix4fv(
                             self.shadow_model_location,
@@ -535,7 +535,7 @@ impl Renderer {
                         for body in physics.bodies.iter().filter(|body| body.solid) {
                             let radius = body.size.abs() * 0.5 + Vec3::splat(1.0);
                             if !light_frustum.intersects_aabb(body.position - radius, body.position + radius) { continue; }
-                            let model = Mat4::from_translation(body.position);
+                            let model = super::physics_body_model_matrix(body);
                             gl::UniformMatrix4fv(renderer.shadow_model_location, 1,
                                 gl::FALSE, model.to_cols_array().as_ptr());
                             gl::DrawArrays(gl::TRIANGLES, first, count);
@@ -903,10 +903,7 @@ impl Renderer {
                         body.color_rgb.z,
                     );
 
-                    let center = body.size * 0.5;
-                    let model = Mat4::from_translation(body.position + center)
-                        * Mat4::from_quat(body.rotation)
-                        * Mat4::from_translation(-center);
+                    let model = super::physics_body_model_matrix(body);
 
                     gl::UniformMatrix4fv(
                         model_location,

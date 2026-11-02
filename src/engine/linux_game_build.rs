@@ -225,6 +225,7 @@ pub fn build_linux_game(
         profile.resolution = Some(options.resolution);
         profile.runtime_delivery = "native_linux_elf".into();
         profile.build_configuration = options.configuration.as_str().into();
+        profile.executable_template_sha256 = Some(original.0.clone());
         fs::write(
             game_data.join(PROFILE_FILE),
             serde_json::to_vec_pretty(&profile).map_err(|e| e.to_string())?,

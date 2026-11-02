@@ -583,6 +583,13 @@ impl EntityManager {
     pub fn set_rotation(&mut self, id: EntityId, rotation: Vec3) {
         if let Some(entity) = self.entities.get_mut(&id) {
             entity.rotation = rotation;
+            if let Some(collider) = entity.physics.collider.as_mut() {
+                collider.rotation = rotation;
+                if let Some((lo, hi)) = crate::engine::collision_geometry::envelope(collider) {
+                    entity.physics.size = (hi - lo).max(Vec3::splat(0.01));
+                    entity.physics.offset = (hi + lo) * 0.5;
+                }
+            }
         }
     }
 

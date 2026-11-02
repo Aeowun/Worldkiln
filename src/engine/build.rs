@@ -558,6 +558,7 @@ fn package_game_with_template_inner(
         };
         let staged_executable = staging.join(&executable_name);
 
+        let executable_template_sha256 = crate::engine::game_package::sha256_file(executable_template)?.0;
         let manifest = EmbeddedGameManifest {
             format_version: 1,
             game_id: game_id.clone(),
@@ -584,6 +585,7 @@ fn package_game_with_template_inner(
                 build_configuration: settings.configuration.as_str().into(),
                 window_mode: settings.window_mode.clone(),
                 resolution: Some(settings.resolution),
+                executable_template_sha256: Some(executable_template_sha256.clone()),
                 ..GameExportProfile::current_windows(&project_name)
             }),
         };
@@ -660,6 +662,10 @@ fn package_game_with_template_inner(
                 "WARNING: GitHub release is not marked immutable; the exact runtime SHA-256 is still pinned inside this game executable.\n",
             );
         }
+        log.push_str(&format!(
+            "Executable template SHA-256: {executable_template_sha256}.\nPackaged game SHA-256: {}.\n",
+            crate::engine::game_package::sha256_file(&executable)?.0
+        ));
         if bundle_runtime {
             log.push_str("Build output includes the game executable and its verified runtime package. Keep both files together when sharing.\n");
         } else {

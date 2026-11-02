@@ -336,6 +336,15 @@ pub(super) const SHADOW_NEAR: f32 = 0.1;
 pub(super) const SHADOW_FAR: f32 = 100.0;
 pub(super) const SHADOW_LIGHT_DISTANCE: f32 = 50.0;
 
+pub(super) fn physics_body_model_matrix(
+    body: &crate::engine::physics::PhysicsBody,
+) -> Mat4 {
+    let center = body.size * 0.5;
+    Mat4::from_translation(body.position + center)
+        * Mat4::from_quat(body.rotation)
+        * Mat4::from_translation(-center)
+}
+
 impl Renderer {
     #[cfg(feature = "editor")]
     pub(crate) fn configure_development_profile(
@@ -453,6 +462,12 @@ impl Renderer {
                 );
             }
         }
+        let tiles_per_axis = SHADOW_RES / point_shadows_gpu::SHADOW_TILE_SIZE;
+        assert!(tiles_per_axis > 0 && SHADOW_RES % point_shadows_gpu::SHADOW_TILE_SIZE == 0);
+        grid_fragment_shader = grid_fragment_shader.replace(
+            "__POINT_SHADOW_TILES_PER_AXIS__",
+            &format!("{tiles_per_axis}.0"),
+        );
         let grid_program = create_program(GRID_VERTEX_SHADER, &grid_fragment_shader);
         let water_fragment = terrain::WATER_FRAGMENT_SHADER.replace(
             "// WK_OBJECT_CONTACT_FOAM_FUNCTION",
@@ -2126,12 +2141,14 @@ float point_shadow_visibility(vec3 ray, float light_range, float slot, vec3 norm
         face = v.z >= 0.0 ? 4.0 : 5.0;
         face_uv = vec2(v.z >= 0.0 ? v.x : -v.x, -v.y) / a.z;
     }
+    float tiles_per_axis = __POINT_SHADOW_TILES_PER_AXIS__;
+    float tiles_per_layer = tiles_per_axis * tiles_per_axis;
     float tile = slot * 6.0 + face;
-    float local_tile = mod(tile, 16.0);
-    float layer = 1.0 + floor(tile / 16.0);
-    vec2 pixel = vec2(mod(local_tile, 4.0), floor(local_tile / 4.0));
+    float local_tile = mod(tile, tiles_per_layer);
+    float layer = 1.0 + floor(tile / tiles_per_layer);
+    vec2 pixel = vec2(mod(local_tile, tiles_per_axis), floor(local_tile / tiles_per_axis));
     vec2 local_uv = clamp(face_uv * 0.5 + 0.5, vec2(0.003), vec2(0.997));
-    vec2 atlas_uv = (pixel + local_uv) * 0.25;
+    vec2 atlas_uv = (pixel + local_uv) / tiles_per_axis;
     float shadow_depth = texture(u_shadow_map, vec3(atlas_uv, layer)).r;
     float near_plane = 0.1;
     float biased_distance = max(near_plane, forward - max(0.025, forward * 0.003));
@@ -2945,6 +2962,32 @@ void main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn physics_body_shadow_model_rotates_about_body_center() {
+        let mut body = crate::engine::physics::PhysicsBody::new(
+            crate::engine::physics::PhysicsBodyId(1),
+            1,
+            Vec3::new(3.0, 2.0, 5.0),
+            Vec3::new(2.0, 1.0, 2.0),
+        );
+        body.rotation = glam::Quat::from_rotation_y(std::f32::consts::FRAC_PI_2);
+        let transform = physics_body_model_matrix(&body);
+        let center = body.size * 0.5;
+        assert!((transform.transform_point3(center) - body.center()).length() < 0.0001);
+        assert!((transform.transform_point3(Vec3::ZERO) - body.position).length() > 0.1);
+    }
+
+    #[test]
+    fn point_shadow_atlas_shader_uses_renderer_tile_size() {
+        let tiles_per_axis = SHADOW_RES / point_shadows_gpu::SHADOW_TILE_SIZE;
+        let source = GRID_FRAGMENT_SHADER.replace(
+            "__POINT_SHADOW_TILES_PER_AXIS__",
+            &format!("{tiles_per_axis}.0"),
+        );
+        assert!(!source.contains("__POINT_SHADOW_TILES_PER_AXIS__"));
+        assert!(source.contains(&format!("float tiles_per_axis = {tiles_per_axis}.0;")));
+    }
 
     #[test]
     fn editor_shadow_range_reaches_three_times_farther_than_game_projection() {

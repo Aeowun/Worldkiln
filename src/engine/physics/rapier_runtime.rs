@@ -20,6 +20,11 @@ fn axis(v: Vec3) -> Vector {
 fn orientation(rot: Vec3) -> Quat {
     Quat::from_euler(EulerRot::XYZ, rot.x, rot.y, rot.z)
 }
+fn character_collider_rotation(character: &crate::character::Character) -> Quat {
+    character
+        .contact_collider()
+        .map_or(Quat::IDENTITY, |collider| orientation(collider.rotation))
+}
 fn source_actor_collider(
     physics: &EntityPhysicsState,
     rotation: Quat,
@@ -229,7 +234,7 @@ impl PhysicsWorld {
                 solid_actor_keys.insert(id);
             }
             let q = active_character
-                .map_or_else(|| orientation(entity.rotation), |ch| ch.transform.rotation);
+                .map_or_else(|| orientation(entity.rotation), character_collider_rotation);
             let center =
                 active_character.map_or(entity.position + p.offset, |ch| ch.transform.position);
             let dynamic = !p.anchored && !kinematic;
@@ -299,7 +304,7 @@ impl PhysicsWorld {
                         *characters.collision_step_origins.get(&ch.id)?,
                         ch.transform.position,
                         ch.movement.velocity,
-                        ch.transform.rotation,
+                        character_collider_rotation(ch),
                     ))
                 })
                 .collect();

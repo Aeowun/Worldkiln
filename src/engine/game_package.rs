@@ -31,6 +31,8 @@ pub struct GameExportProfile {
     pub assets: String,
     pub runtime_delivery: String,
     pub splash: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub executable_template_sha256: Option<String>,
 }
 
 fn default_shipping_configuration() -> String {
@@ -50,6 +52,7 @@ impl GameExportProfile {
             assets: "project_and_portable_packs".to_string(),
             runtime_delivery: "bundled_verified_runtime".to_string(),
             splash: "worldkiln_default".to_string(),
+            executable_template_sha256: None,
         }
     }
 }
@@ -803,6 +806,7 @@ fn validate_manifest(manifest: &EmbeddedGameManifest) -> Result<(), String> {
                 "verified_download_if_uncached" | "bundled_verified_runtime"
             )
             || profile.splash != "worldkiln_default"
+            || profile.executable_template_sha256.as_ref().is_some_and(|sha| !validate_hex_sha256(sha))
             || profile.display_title.trim().is_empty()
             || profile.display_title.len() > 256
         {
@@ -1374,6 +1378,19 @@ mod tests {
         assert!(restored.export_profile.is_none());
         validate_manifest(&restored).unwrap();
 
+        manifest.export_profile.as_mut().unwrap().executable_template_sha256 =
+            Some("a".repeat(64));
+        validate_manifest(&manifest).unwrap();
+        let round_trip: EmbeddedGameManifest =
+            serde_json::from_value(serde_json::to_value(&manifest).unwrap()).unwrap();
+        assert_eq!(
+            round_trip.export_profile.unwrap().executable_template_sha256.as_deref(),
+            Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+        );
+        manifest.export_profile.as_mut().unwrap().executable_template_sha256 =
+            Some("not-a-sha".into());
+        assert!(validate_manifest(&manifest).is_err());
+        manifest.export_profile.as_mut().unwrap().executable_template_sha256 = None;
         manifest.export_profile.as_mut().unwrap().target_platform = "linux".to_string();
         assert!(validate_manifest(&manifest).is_err());
     }

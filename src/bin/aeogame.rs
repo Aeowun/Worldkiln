@@ -237,7 +237,7 @@ fn main() {
                 let dt = now.duration_since(last_frame_time).as_secs_f32();
                 last_frame_time = now;
 
-                game_runtime.update(dt.min(0.1));
+                game_runtime.update(dt);
 
                 let current_mouse = (
                     game_runtime.mouse.cursor_visible,

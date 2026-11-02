@@ -1222,7 +1222,7 @@ impl App {
             ctx,
             &mut self.runtime_ui,
             rect,
-            self.editor.theme_settings.interface_scale.factor(),
+            1.0,
             self.project_manager.current_project.as_deref(),
         );
     }
