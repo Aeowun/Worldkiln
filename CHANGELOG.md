@@ -33,3 +33,4 @@ Development history for Worldkiln and AeoScript.
 - Fixed game restart functionality not working correctly in standalone games.
 - Improved visual consistency, including shadows and interface scaling.
 - Added better error logging to make troubleshooting exported games easier.
+- Improved single-executable offline packaging

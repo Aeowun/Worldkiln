@@ -27,7 +27,7 @@ Open Worldkiln, create a project, and start building in the editor. The [getting
 - [API reference](https://aeowun.com/docs/reference/) — functions, properties, and examples.
 - [Changelog](CHANGELOG.md) — release history and development features.
 
-# Supported Imports in Worldkiln 1.0.0
+# Supported Imports in Worldkiln V1
 
 Worldkiln allows you to import your own 3D models, characters, animations, textures, sounds, videos, and visual effects into your projects.
 

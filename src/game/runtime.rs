@@ -434,12 +434,16 @@ impl GameRuntime {
             }
         }
 
-        let (controller_name, _) = crate::project::character_asset::resolve_player_logic(
+        let (controller_name, camera_name) = crate::project::character_asset::resolve_player_logic(
             project_path,
             &self.world.selected_character,
             &self.world.selected_controller,
             &self.world.selected_camera,
         );
+        if !camera_name.is_empty() {
+            self.gameplay_camera.set_mode_from_name(&camera_name);
+            let _ = self.world.set_runtime_camera_script(&camera_name);
+        }
 
         match ScriptScene::load_from_bindings(
             project_path,

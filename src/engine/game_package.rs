@@ -12,6 +12,7 @@ const GAME_PACKAGE_FOOTER_SIZE: u64 = 32;
 const GAME_PACKAGE_FORMAT_VERSION: u32 = 1;
 const GAME_ID_FILE: &str = ".worldkiln-game-id";
 const RUNTIME_RELEASE_ASSET_NAME: &str = "UserData.zip";
+const EMBEDDED_RUNTIME_DIRECTORY: &str = "__worldkiln_engine_runtime__";
 const MAX_MANIFEST_BYTES: u64 = 64 * 1024;
 const MAX_EXTRACTED_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 
@@ -637,6 +638,72 @@ pub fn create_project_payload(
     project_path: &Path,
     destination: &Path,
 ) -> Result<(String, u64), String> {
+    create_project_payload_with_runtime(project_path, destination, None)
+}
+
+pub fn create_engine_assets_archive(
+    assets_dir: &Path,
+    destination: &Path,
+    expected_version: &str,
+) -> Result<(String, u64), String> {
+    if !assets_dir.is_dir() {
+        return Err(format!("Engine runtime assets are missing: {}", assets_dir.display()));
+    }
+    let version = fs::read_to_string(assets_dir.join("version.txt"))
+        .map_err(|error| format!("Engine runtime asset version is missing: {error}"))?;
+    if version.trim() != expected_version {
+        return Err(format!(
+            "Engine runtime assets are version '{}', but this build requires '{expected_version}'",
+            version.trim()
+        ));
+    }
+    let root = assets_dir
+        .parent()
+        .ok_or("Engine assets directory has no parent")?;
+    let file = File::create(destination)
+        .map_err(|error| format!("Cannot stage engine runtime assets: {error}"))?;
+    let mut writer = zip::ZipWriter::new(file);
+    let mut entries = fs::read_dir(assets_dir)
+        .map_err(|error| format!("Cannot read engine runtime assets: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("Cannot list engine runtime assets: {error}"))?;
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
+        if entry.file_name().to_string_lossy().eq_ignore_ascii_case("assistant") {
+            continue;
+        }
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|error| format!("Cannot inspect engine asset: {error}"))?;
+        if linked_or_reparse(&metadata) {
+            return Err("Linked engine runtime assets cannot be packaged".into());
+        }
+        let relative = archive_name(root, &path)?;
+        let options = zip::write::SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated);
+        if metadata.is_dir() {
+            writer.add_directory(format!("{relative}/"), options)
+                .map_err(|error| format!("Cannot add engine asset directory: {error}"))?;
+            zip_project_directory(&mut writer, root, &path)?;
+        } else if metadata.is_file() {
+            writer.start_file(&relative, options)
+                .map_err(|error| format!("Cannot add engine asset file: {error}"))?;
+            std::io::copy(
+                &mut File::open(&path).map_err(|error| error.to_string())?,
+                &mut writer,
+            )
+            .map_err(|error| format!("Cannot embed engine asset: {error}"))?;
+        }
+    }
+    writer.finish().map_err(|error| format!("Cannot finish engine assets: {error}"))?;
+    sha256_file(destination)
+}
+
+pub fn create_project_payload_with_runtime(
+    project_path: &Path,
+    destination: &Path,
+    engine_archive: Option<&Path>,
+) -> Result<(String, u64), String> {
     if !project_path.is_dir() {
         return Err(format!(
             "Project directory does not exist: {}",
@@ -651,7 +718,25 @@ pub fn create_project_payload(
     let file = File::create(destination)
         .map_err(|error| format!("Failed to create {}: {error}", destination.display()))?;
     let mut writer = zip::ZipWriter::new(file);
+    if engine_archive.is_some() && project_path.join(EMBEDDED_RUNTIME_DIRECTORY).exists() {
+        return Err("Project content conflicts with the reserved engine runtime directory".into());
+    }
     zip_project_directory(&mut writer, project_path, project_path)?;
+    if let Some(archive) = engine_archive {
+        writer
+            .start_file(
+                format!("{EMBEDDED_RUNTIME_DIRECTORY}/{RUNTIME_RELEASE_ASSET_NAME}"),
+                zip::write::SimpleFileOptions::default()
+                    .compression_method(zip::CompressionMethod::Stored),
+            )
+            .map_err(|error| format!("Cannot attach engine runtime: {error}"))?;
+        std::io::copy(
+            &mut File::open(archive)
+                .map_err(|error| format!("Cannot read engine runtime archive: {error}"))?,
+            &mut writer,
+        )
+        .map_err(|error| format!("Cannot embed engine runtime: {error}"))?;
+    }
     for resource in crate::project::asset_packs::portable_resources(project_path)? {
         writer
             .start_file(
@@ -769,7 +854,15 @@ fn validate_manifest(manifest: &EmbeddedGameManifest) -> Result<(), String> {
     {
         return Err("Embedded game manifest contains an invalid SHA-256 digest".to_string());
     }
-    if manifest.runtime_release_tag != release_tag(&manifest.engine_version) {
+    let embedded_runtime = manifest
+        .export_profile
+        .as_ref()
+        .is_some_and(|profile| profile.runtime_delivery == "embedded_verified_runtime");
+    if embedded_runtime {
+        if !manifest.runtime_release_tag.is_empty() || !manifest.runtime_asset_url.is_empty() {
+            return Err("Embedded runtime must not reference a network release".into());
+        }
+    } else if manifest.runtime_release_tag != release_tag(&manifest.engine_version) {
         return Err(
             "Embedded game runtime release tag does not match its engine version".to_string(),
         );
@@ -777,7 +870,7 @@ fn validate_manifest(manifest: &EmbeddedGameManifest) -> Result<(), String> {
     if manifest.runtime_asset_name != RUNTIME_RELEASE_ASSET_NAME {
         return Err("Embedded game references an unsupported runtime asset".to_string());
     }
-    if !manifest
+    if !embedded_runtime && !manifest
         .runtime_asset_url
         .starts_with("https://github.com/Aeowun/Worldkiln/releases/download/")
     {
@@ -803,7 +896,7 @@ fn validate_manifest(manifest: &EmbeddedGameManifest) -> Result<(), String> {
             || profile.assets != "project_and_portable_packs"
             || !matches!(
                 profile.runtime_delivery.as_str(),
-                "verified_download_if_uncached" | "bundled_verified_runtime"
+                "verified_download_if_uncached" | "bundled_verified_runtime" | "embedded_verified_runtime"
             )
             || profile.splash != "worldkiln_default"
             || profile.executable_template_sha256.as_ref().is_some_and(|sha| !validate_hex_sha256(sha))
@@ -1231,8 +1324,16 @@ fn ensure_runtime_assets(
     manifest: &EmbeddedGameManifest,
     base: &Path,
     executable: &Path,
+    game_data: &Path,
 ) -> Result<PathBuf, String> {
-    let root = runtime_cache_root(base, &manifest.engine_version);
+    let mut root = runtime_cache_root(base, &manifest.engine_version);
+    if manifest
+        .export_profile
+        .as_ref()
+        .is_some_and(|profile| profile.runtime_delivery == "embedded_verified_runtime")
+    {
+        root = root.join(&manifest.runtime_asset_sha256);
+    }
     if runtime_assets_current(&root, manifest) {
         return Ok(root);
     }
@@ -1248,10 +1349,23 @@ fn ensure_runtime_assets(
 
     let result = (|| {
         let zip_path = staging.join(&manifest.runtime_asset_name);
-        let sidecar = executable
-            .parent()
-            .ok_or("Packaged executable has no parent directory")?
-            .join(&manifest.runtime_asset_name);
+        let embedded_runtime = manifest
+            .export_profile
+            .as_ref()
+            .is_some_and(|profile| profile.runtime_delivery == "embedded_verified_runtime");
+        let sidecar = if embedded_runtime {
+            game_data
+                .join(EMBEDDED_RUNTIME_DIRECTORY)
+                .join(&manifest.runtime_asset_name)
+        } else {
+            executable
+                .parent()
+                .ok_or("Packaged executable has no parent directory")?
+                .join(&manifest.runtime_asset_name)
+        };
+        if embedded_runtime && !sidecar.is_file() {
+            return Err("Required embedded engine assets are missing from the game".into());
+        }
         if sidecar.is_file() {
             let metadata = fs::symlink_metadata(&sidecar)
                 .map_err(|error| format!("Cannot inspect bundled runtime: {error}"))?;
@@ -1323,7 +1437,7 @@ pub fn prepare_embedded_game_from(
 ) -> Result<PreparedGame, String> {
     validate_manifest(&package.manifest)?;
     let game_data = ensure_project_payload_installed(executable, package, local_app_data)?;
-    let runtime_root = ensure_runtime_assets(&package.manifest, local_app_data, executable)?;
+    let runtime_root = ensure_runtime_assets(&package.manifest, local_app_data, executable, &game_data)?;
     Ok(PreparedGame {
         game_data,
         runtime_root,
@@ -1366,6 +1480,90 @@ mod tests {
             runtime_asset_size: payload_size,
             export_profile: Some(GameExportProfile::current_windows("Sample Game")),
         }
+    }
+
+    #[test]
+    fn embedded_engine_runtime_starts_offline_from_one_executable() {
+        let root = test_root("offline_engine");
+        let engine_assets = root.join("Engine").join(".assets");
+        fs::create_dir_all(engine_assets.join("cameras/thirdPerson")).unwrap();
+        fs::write(engine_assets.join("version.txt"), env!("CARGO_PKG_VERSION")).unwrap();
+        fs::create_dir_all(engine_assets.join("assistant")).unwrap();
+        fs::write(engine_assets.join("assistant/ai_examples.json"), "{}").unwrap();
+        fs::write(
+            engine_assets.join("cameras/thirdPerson/ThirdPersonCamera.aeo"),
+            "entity ThirdPersonCamera {}",
+        )
+        .unwrap();
+        let runtime_zip = root.join("engine-assets.zip");
+        let (runtime_sha, runtime_size) = create_engine_assets_archive(
+            &engine_assets,
+            &runtime_zip,
+            env!("CARGO_PKG_VERSION"),
+        )
+        .unwrap();
+        let project = root.join("Project");
+        fs::create_dir_all(project.join("scripts")).unwrap();
+        fs::write(project.join("world.dat"), "world").unwrap();
+        fs::write(project.join("scripts/game.aeo"), "print(1)").unwrap();
+        let payload = root.join("payload.zip");
+        let (payload_sha, payload_size) =
+            create_project_payload_with_runtime(&project, &payload, Some(&runtime_zip)).unwrap();
+        let mut manifest = sample_manifest(payload_sha, payload_size);
+        manifest.runtime_release_tag.clear();
+        manifest.runtime_asset_url.clear();
+        manifest.runtime_asset_sha256 = runtime_sha;
+        manifest.runtime_asset_size = runtime_size;
+        manifest
+            .export_profile
+            .as_mut()
+            .unwrap()
+            .runtime_delivery = "embedded_verified_runtime".into();
+        validate_manifest(&manifest).unwrap();
+        let template = root.join("engine.exe");
+        fs::write(&template, b"MZ test engine").unwrap();
+        let game = root.join("game.exe");
+        append_game_package(&template, &payload, &manifest, &game).unwrap();
+        fs::remove_file(&runtime_zip).unwrap();
+        fs::remove_file(&payload).unwrap();
+        assert!(!root.join("UserData.zip").exists());
+        let package = probe_embedded_game(&game).unwrap().unwrap();
+        let prepared = prepare_embedded_game_from(
+            &game,
+            &package,
+            &root.join("AppData"),
+        )
+        .unwrap();
+        assert_eq!(
+            fs::read_to_string(prepared.runtime_root.join(".assets/version.txt")).unwrap(),
+            env!("CARGO_PKG_VERSION")
+        );
+        assert_eq!(
+            fs::read_to_string(
+                prepared
+                    .runtime_root
+                    .join(".assets/cameras/thirdPerson/ThirdPersonCamera.aeo")
+            )
+            .unwrap(),
+            "entity ThirdPersonCamera {}"
+        );
+        assert_eq!(
+            fs::read_to_string(prepared.game_data.join("scripts/game.aeo")).unwrap(),
+            "print(1)"
+        );
+        assert!(!prepared.runtime_root.join(".assets/assistant").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn embedded_runtime_rejects_remote_dependency() {
+        let mut manifest = sample_manifest("0123456789abcdef".repeat(4), 123);
+        manifest.export_profile.as_mut().unwrap().runtime_delivery =
+            "embedded_verified_runtime".into();
+        assert!(validate_manifest(&manifest).is_err());
+        manifest.runtime_release_tag.clear();
+        manifest.runtime_asset_url.clear();
+        validate_manifest(&manifest).unwrap();
     }
 
     #[test]
@@ -1566,6 +1764,7 @@ mod tests {
             &manifest,
             &root.join("LocalAppData"),
             &root.join("Game.exe"),
+            &root,
         )
         .unwrap();
         assert_eq!(
@@ -1576,7 +1775,7 @@ mod tests {
         let mut bad = manifest.clone();
         bad.runtime_asset_sha256 = "f".repeat(64);
         assert!(
-            ensure_runtime_assets(&bad, &root.join("FreshCache"), &root.join("Game.exe")).is_err()
+            ensure_runtime_assets(&bad, &root.join("FreshCache"), &root.join("Game.exe"), &root).is_err()
         );
         fs::remove_dir_all(root).unwrap();
     }

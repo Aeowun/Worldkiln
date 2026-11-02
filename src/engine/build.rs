@@ -9,8 +9,8 @@ use std::path::{Path, PathBuf};
 use crate::engine::build_platform::{BuildStage, GamePlatformAdapter, TargetPlatform};
 use crate::engine::game_package::{
     EmbeddedGameManifest, GameExportProfile, RuntimeReleaseAsset, append_game_package,
-    create_project_payload, persist_game_id, planned_game_id, probe_embedded_game,
-    resolve_runtime_release_asset, verify_embedded_payload,
+    create_engine_assets_archive, create_project_payload_with_runtime, persist_game_id,
+    planned_game_id, probe_embedded_game, verify_embedded_payload,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -500,7 +500,7 @@ fn package_game_with_template_inner(
 
     let version = env!("CARGO_PKG_VERSION");
 
-    if runtime_asset.release_tag != format!("win11-v{version}") {
+    if !bundle_runtime && runtime_asset.release_tag != format!("win11-v{version}") {
         return Err(format!(
             "Runtime release '{}' does not match Worldkiln {}",
             runtime_asset.release_tag, version
@@ -532,8 +532,31 @@ fn package_game_with_template_inner(
         check_cancel(cancel)?;
         snapshot_project_for_build(project_path, &snapshot)?;
         check_cancel(cancel)?;
+        let engine_archive = if bundle_runtime {
+            let path = staging.join(".engine-assets.zip");
+            let installed_assets = executable_template
+                .parent()
+                .ok_or("Engine executable has no parent directory")?
+                .join(".assets");
+            let assets = if installed_assets.is_dir() {
+                installed_assets
+            } else {
+                crate::project::engine_assets_dir()
+            };
+            let (sha, size) = create_engine_assets_archive(&assets, &path, version)?;
+            Some((path, sha, size))
+        } else {
+            None
+        };
         let payload = staging.join(".GameData.payload.zip");
-        let (payload_sha256, payload_len) = create_project_payload(&snapshot, &payload)?;
+        let (payload_sha256, payload_len) = create_project_payload_with_runtime(
+            &snapshot,
+            &payload,
+            engine_archive.as_ref().map(|(path, _, _)| path.as_path()),
+        )?;
+        if let Some((path, _, _)) = &engine_archive {
+            fs::remove_file(path).map_err(|error| format!("Cannot clean engine runtime staging: {error}"))?;
+        }
         check_cancel(cancel)?;
         fs::remove_dir_all(&snapshot)
             .map_err(|error| format!("Cannot remove temporary export snapshot: {error}"))?;
@@ -569,11 +592,11 @@ fn package_game_with_template_inner(
             },
             engine_version: version.to_string(),
             payload_sha256,
-            runtime_release_tag: runtime_asset.release_tag.clone(),
+            runtime_release_tag: if bundle_runtime { String::new() } else { runtime_asset.release_tag.clone() },
             runtime_asset_name: runtime_asset.asset_name.clone(),
-            runtime_asset_url: runtime_asset.browser_download_url.clone(),
-            runtime_asset_sha256: runtime_asset.sha256.clone(),
-            runtime_asset_size: runtime_asset.size,
+            runtime_asset_url: if bundle_runtime { String::new() } else { runtime_asset.browser_download_url.clone() },
+            runtime_asset_sha256: engine_archive.as_ref().map_or_else(|| runtime_asset.sha256.clone(), |(_, sha, _)| sha.clone()),
+            runtime_asset_size: engine_archive.as_ref().map_or(runtime_asset.size, |(_, _, size)| *size),
             export_profile: Some(GameExportProfile {
                 display_title: if settings.title.trim().is_empty() {
                     project_name.clone()
@@ -586,6 +609,11 @@ fn package_game_with_template_inner(
                 window_mode: settings.window_mode.clone(),
                 resolution: Some(settings.resolution),
                 executable_template_sha256: Some(executable_template_sha256.clone()),
+                runtime_delivery: if bundle_runtime {
+                    "embedded_verified_runtime".into()
+                } else {
+                    "bundled_verified_runtime".into()
+                },
                 ..GameExportProfile::current_windows(&project_name)
             }),
         };
@@ -624,13 +652,6 @@ fn package_game_with_template_inner(
             .map_err(|error| format!("Failed to inspect staged game executable: {error}"))?
             .len();
         let _ = staged_size;
-        if bundle_runtime {
-            crate::engine::game_package::download_verified_runtime_asset(
-                &manifest,
-                &staging.join(&runtime_asset.asset_name),
-            )?;
-        }
-
         fs::remove_file(&payload)
             .map_err(|error| format!("Failed to remove temporary game payload: {error}"))?;
 
@@ -638,11 +659,8 @@ fn package_game_with_template_inner(
             .map_err(|error| format!("Failed to inspect staged game build: {error}"))?
             .collect::<Result<Vec<_>, _>>()
             .map_err(|error| format!("Failed to inspect staged game build: {error}"))?;
-        let expected_files = if bundle_runtime { 2 } else { 1 };
-        if output_entries.len() != expected_files
-            || !staged_executable.is_file()
-            || (bundle_runtime && !staging.join(&runtime_asset.asset_name).is_file())
-        {
+        let expected_files = 1;
+        if output_entries.len() != expected_files || !staged_executable.is_file() {
             return Err("Game build staging contains unexpected files".to_string());
         }
 
@@ -652,22 +670,18 @@ fn package_game_with_template_inner(
 
         let executable = output_dir.join(executable_name);
         let mut log = format!(
-            "Self-executable package created.\nEmbedded GameData: {} bytes.\nRuntime package: {} / {}.\nRuntime SHA-256: {}.\n",
-            payload_len, runtime_asset.release_tag, runtime_asset.asset_name, runtime_asset.sha256
+            "Self-executable package created.\nEmbedded GameData: {payload_len} bytes.\nEngine assets SHA-256: {}.\n",
+            manifest.runtime_asset_sha256
         );
-        if runtime_asset.immutable_release {
-            log.push_str("GitHub release is immutable.\n");
-        } else {
-            log.push_str(
-                "WARNING: GitHub release is not marked immutable; the exact runtime SHA-256 is still pinned inside this game executable.\n",
-            );
+        if !bundle_runtime {
+            log.push_str(&format!("Runtime source: {}.\n", runtime_asset.release_tag));
         }
         log.push_str(&format!(
             "Executable template SHA-256: {executable_template_sha256}.\nPackaged game SHA-256: {}.\n",
             crate::engine::game_package::sha256_file(&executable)?.0
         ));
         if bundle_runtime {
-            log.push_str("Build output includes the game executable and its verified runtime package. Keep both files together when sharing.\n");
+            log.push_str("Build output contains one offline executable with embedded engine runtime assets.\n");
         } else {
             log.push_str("Build output contains one executable.\n");
         }
@@ -792,7 +806,14 @@ fn build_windows_game(
     let executable_template = std::env::current_exe()
         .map_err(|error| format!("Failed to locate installed Worldkiln executable: {error}"))?;
 
-    let runtime_asset = resolve_runtime_release_asset(env!("CARGO_PKG_VERSION"))?;
+    let runtime_asset = RuntimeReleaseAsset {
+        release_tag: String::new(),
+        asset_name: "UserData.zip".into(),
+        browser_download_url: String::new(),
+        sha256: String::new(),
+        size: 0,
+        immutable_release: false,
+    };
 
     let mut result = package_game_with_template_inner(
         project_path,
