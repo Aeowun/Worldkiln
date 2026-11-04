@@ -2539,6 +2539,7 @@ impl Interpreter {
             || name == "observe"
             || name == "player"
             || name == "save"
+            || name == "game"
             || name == "get"
             || name == "scripts"
             || name == "proj"

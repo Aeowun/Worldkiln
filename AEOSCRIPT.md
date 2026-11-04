@@ -95,3 +95,33 @@ Read them with `save.get("coins")`. See [Saving](https://aeowun.com/aeoscript/sa
 
 The [AeoScript language documentation](https://aeowun.com/aeoscript/) covers syntax and script organization. The [API reference](https://aeowun.com/docs/reference/) is the source for exact callable names, parameters, and return values. Script errors are covered in [Diagnostics](https://aeowun.com/aeoscript/diagnostics/).
 
+## Game lifecycle
+
+Use the `game` namespace to control the current game instance, not unrelated windows or processes.
+
+| API | Behavior |
+| --- | --- |
+| `game.quit()` | Signals `game_on_quit`, then exits the calling game instance (or leaves Editor Play). |
+| `game.restart()` | Signals `game_on_quit`, then reloads the running game in its existing window, preserving saved values. |
+| `game.pause()` | Pauses local single-player simulation. Warns and does nothing in multiplayer. |
+| `game.resume()` | Resumes local single-player simulation. Warns and does nothing in multiplayer. |
+| `game.is_paused` | Boolean indicating whether gameplay is paused. |
+| `game.elapsed_time` | Seconds of active gameplay since this session began. |
+| `game.delta_time` | Seconds advanced by the latest gameplay update, zero while paused. |
+| `game.is_editor` | True during Editor Play. |
+| `game.is_standalone` | True when running in a standalone game window. |
+| `game.on_quit` | Event name `game_on_quit`. |
+| `game.on_pause` | Event name `game_on_pause`. |
+| `game.on_resume` | Event name `game_on_resume`. |
+
+Use existing AeoScript named event handlers for lifecycle notifications:
+
+```aeoscript
+on game_on_quit() {
+    save.commit()
+}
+```
+
+`game_on_quit` is only a signal. Saving and other end-of-game actions are entirely creator-authored. A game may decide when to call `game.quit()` based on its own save logic.
+
+`game.restart()` reloads the current gameplay session without closing its window and without clearing saved values. `save.restart()` only resets and commits saved values; it does not restart gameplay. `save.reset()` retains its existing uncommitted reset behavior.

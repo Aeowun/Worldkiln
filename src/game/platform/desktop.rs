@@ -227,6 +227,7 @@ pub fn run_game(
                         if let Some(file) = development_log.as_mut() {
                             let _ = writeln!(file, "Game closed by window request");
                         }
+                        game_runtime.notify_game_quit();
                         game_runtime.on_lifecycle(GameLifecycleEvent::Shutdown);
                         elwt.exit();
                     }
@@ -284,6 +285,22 @@ pub fn run_game(
 
                 if !splash_active {
                     game_runtime.update(dt);
+                    match game_runtime.take_game_action() {
+                        Some(crate::scripting::api::GameLifecycleRequest::Quit) => {
+                            game_runtime.notify_game_quit();
+                            let _ = window.set_cursor_grab(CursorGrabMode::None);
+                            window.set_cursor_visible(true);
+                            game_runtime.on_lifecycle(GameLifecycleEvent::Shutdown);
+                            elwt.exit();
+                            return;
+                        }
+                        Some(crate::scripting::api::GameLifecycleRequest::Restart) => {
+                            game_runtime.notify_game_quit();
+                            game_runtime.restart_session();
+                        }
+                        None => {}
+                    }
+
                 }
 
                 let current_mouse = (

@@ -40,6 +40,9 @@ fn norm_path(path: &str) -> String {
 }
 
 pub struct ScriptHostBridge<'a> {
+    pub game_state:
+        Option<std::sync::Arc<std::sync::Mutex<crate::scripting::api::GameLifecycleState>>>,
+
     pub entity_manager: &'a mut EntityManager,
     pub attachment_system: Option<&'a mut crate::engine::attachment::AttachmentSystem>,
     pub world: &'a mut World,
@@ -2503,6 +2506,47 @@ impl<'a> ScriptHostBridge<'a> {
 }
 
 impl<'a> EngineHost for ScriptHostBridge<'a> {
+    fn game_property(&self, name: &str) -> Option<Value> {
+        let state = self.game_state.as_ref()?.lock().ok()?;
+        match name {
+            "is_paused" => Some(Value::Bool(state.paused)),
+            "elapsed_time" => Some(Value::Number(state.elapsed_time)),
+            "delta_time" => Some(Value::Number(state.delta_time)),
+            "is_editor" => Some(Value::Bool(state.is_editor)),
+            "is_standalone" => Some(Value::Bool(!state.is_editor)),
+            "on_quit" => Some(Value::String("game_on_quit".into())),
+            "on_pause" => Some(Value::String("game_on_pause".into())),
+            "on_resume" => Some(Value::String("game_on_resume".into())),
+            _ => None,
+        }
+    }
+
+    fn game_command(&mut self, name: &str) -> Result<(), String> {
+        use crate::scripting::api::GameLifecycleRequest;
+        let state = self
+            .game_state
+            .as_ref()
+            .ok_or("game lifecycle controls are unavailable in this runtime")?;
+        let mut state = state
+            .lock()
+            .map_err(|_| "game lifecycle state is unavailable")?;
+        match name {
+            "quit" => state.requested = Some(GameLifecycleRequest::Quit),
+            "restart" => state.requested = Some(GameLifecycleRequest::Restart),
+            "pause" if !state.paused => {
+                state.paused = true;
+                state.pending_events.push("game_on_pause");
+            }
+            "resume" if state.paused => {
+                state.paused = false;
+                state.pending_events.push("game_on_resume");
+            }
+            "pause" | "resume" => {}
+            _ => return Err(format!("unknown game command '{name}'")),
+        }
+        Ok(())
+    }
+
     fn tick_navigation_builds(&mut self) {
         if let Some(characters) = self.character_system.as_deref_mut()
             && characters.has_pending_navigation_work()
@@ -4097,6 +4141,7 @@ mod tests {
         character_system: Option<&'a mut CharacterSystem>,
     ) -> ScriptHostBridge<'a> {
         ScriptHostBridge {
+            game_state: None,
             entity_manager,
             attachment_system: None,
             world,

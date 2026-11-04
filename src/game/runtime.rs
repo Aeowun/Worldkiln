@@ -47,6 +47,7 @@ fn report_standalone_error(message: &str) {
 }
 
 pub struct GameRuntime {
+    pub game_state: std::sync::Arc<std::sync::Mutex<crate::scripting::api::GameLifecycleState>>,
     platform_services: Box<dyn GameRuntimeServices>,
     suspended: bool,
     pub renderer: Renderer,
@@ -102,6 +103,7 @@ impl GameRuntime {
         let audio_system = services.create_audio();
         Self {
             platform_services: services,
+            game_state: Default::default(),
             suspended: false,
             renderer,
             world: World::new(),
@@ -352,6 +354,7 @@ impl GameRuntime {
     pub fn fire_player_spawned_event(&mut self, player_entity_id: u64) {
         if let Some(scene) = &mut self.script_scene {
             let mut bridge = ScriptHostBridge {
+                game_state: Some(self.game_state.clone()),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,
@@ -456,6 +459,7 @@ impl GameRuntime {
             Ok(mut scene) => {
                 let has_player = self.character_system.get_active_player().is_some();
                 let mut bridge = ScriptHostBridge {
+                    game_state: Some(self.game_state.clone()),
                     entity_manager: &mut self.entity_manager,
                     attachment_system: Some(&mut self.attachment_system),
                     world: &mut self.world,
@@ -546,6 +550,7 @@ impl GameRuntime {
 
         if let Some(mut scene) = scene_opt {
             let mut bridge = ScriptHostBridge {
+                game_state: Some(self.game_state.clone()),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,
@@ -624,6 +629,36 @@ impl GameRuntime {
             }
         }
     }
+    pub fn restart_session(&mut self) {
+        let Some(project_path) = self.project_path.clone() else {
+            return;
+        };
+        self.stop_scripting();
+        self.audio_system.stop_all();
+        self.entity_manager.clear();
+        self.actor_system.clear();
+        self.character_system.clear();
+        self.attachment_system = AttachmentSystem::default();
+        self.world = World::new();
+        self.physics_world = PhysicsWorld::new();
+        self.physics_clock.reset();
+        self.gameplay_camera = GameplayCamera::new();
+        self.script_pending_events.clear();
+        self.script_dynamic_properties.clear();
+        self.game_state.lock().unwrap().reset_session();
+        self.load_project(project_path);
+    }
+
+    pub fn take_game_action(&self) -> Option<crate::scripting::api::GameLifecycleRequest> {
+        self.game_state.lock().ok()?.requested.take()
+    }
+
+    pub fn notify_game_quit(&mut self) {
+        self.script_pending_events
+            .push(("game_on_quit".into(), Vec::new()));
+        self.update(0.0);
+    }
+
     pub fn update(&mut self, frame_time: f32) {
         if self.suspended {
             return;
@@ -651,6 +686,15 @@ impl GameRuntime {
             }
             return;
         }
+        let frame_time = {
+            let mut game = self.game_state.lock().unwrap();
+            game.advance(frame_time as f64);
+            for event in game.pending_events.drain(..) {
+                self.script_pending_events
+                    .push((event.to_string(), Vec::new()));
+            }
+            if game.paused { 0.0 } else { frame_time }
+        };
         self.world.update_particles(frame_time);
         let key_state = self.keys_down.clone();
 
@@ -658,6 +702,7 @@ impl GameRuntime {
 
         if let Some(scene) = self.script_scene.as_mut() {
             let mut bridge = ScriptHostBridge {
+                game_state: Some(self.game_state.clone()),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,
@@ -825,6 +870,7 @@ impl GameRuntime {
             if character_system.is_player_controller_enabled() {
                 if let (Some(scene), Some(controller)) = (scene_opt.as_mut(), controller_opt) {
                     let mut bridge = ScriptHostBridge {
+                        game_state: Some(self.game_state.clone()),
                         entity_manager,
                         attachment_system: Some(attachment_system),
                         world,
@@ -966,6 +1012,7 @@ impl GameRuntime {
 
             if let Some(scene) = scene_opt.as_mut() {
                 let mut bridge = ScriptHostBridge {
+                    game_state: Some(self.game_state.clone()),
                     entity_manager,
                     attachment_system: Some(attachment_system),
                     world,
@@ -1030,6 +1077,7 @@ impl GameRuntime {
                 let switching = previous.as_deref() != Some(requested.as_str());
                 let has_player = character_system.get_active_player().is_some();
                 let mut bridge = ScriptHostBridge {
+                    game_state: Some(self.game_state.clone()),
                     entity_manager,
                     attachment_system: Some(attachment_system),
                     world,
@@ -1116,6 +1164,7 @@ impl GameRuntime {
 
         if let Some(scene) = &mut self.script_scene {
             let mut bridge = ScriptHostBridge {
+                game_state: Some(self.game_state.clone()),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,

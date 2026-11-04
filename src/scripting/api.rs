@@ -58,7 +58,45 @@ pub(crate) fn record_world_query_cost(change: impl FnOnce(&mut WorldQueryCosts))
     });
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GameLifecycleRequest {
+    Quit,
+    Restart,
+}
+
+#[derive(Debug, Default)]
+pub struct GameLifecycleState {
+    pub paused: bool,
+    pub elapsed_time: f64,
+    pub delta_time: f64,
+    pub requested: Option<GameLifecycleRequest>,
+    pub pending_events: Vec<&'static str>,
+    pub is_editor: bool,
+}
+
+impl GameLifecycleState {
+    pub fn advance(&mut self, delta: f64) {
+        self.delta_time = if self.paused { 0.0 } else { delta.max(0.0) };
+        self.elapsed_time += self.delta_time;
+    }
+
+    pub fn reset_session(&mut self) {
+        self.paused = false;
+        self.elapsed_time = 0.0;
+        self.delta_time = 0.0;
+        self.requested = None;
+        self.pending_events.clear();
+    }
+}
+
 pub trait EngineHost {
+    fn game_property(&self, _name: &str) -> Option<Value> {
+        None
+    }
+    fn game_command(&mut self, _name: &str) -> Result<(), String> {
+        Err("game controls are unavailable in this runtime".into())
+    }
+
     fn tick_navigation_builds(&mut self) {}
     fn sky_material_id(&self) -> Option<String> {
         None
@@ -1326,5 +1364,42 @@ pub fn call_host_member(
         }
 
         HandleKind::Actor | HandleKind::Ui | HandleKind::Sound | HandleKind::Mouse => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod game_lifecycle_tests {
+    use super::{GameLifecycleRequest, GameLifecycleState};
+
+    #[test]
+    fn paused_time_stops_and_resume_continues_active_time() {
+        let mut state = GameLifecycleState::default();
+        state.advance(0.5);
+        state.paused = true;
+        state.advance(12.0);
+        assert_eq!(state.delta_time, 0.0);
+        assert_eq!(state.elapsed_time, 0.5);
+        state.paused = false;
+        state.advance(0.25);
+        assert_eq!(state.elapsed_time, 0.75);
+    }
+
+    #[test]
+    fn restarting_clears_pending_actions_without_changing_editor_context() {
+        let mut state = GameLifecycleState {
+            paused: true,
+            elapsed_time: 10.0,
+            delta_time: 0.1,
+            requested: Some(GameLifecycleRequest::Restart),
+            pending_events: vec!["game_on_pause"],
+            is_editor: true,
+        };
+        state.reset_session();
+        assert!(!state.paused);
+        assert_eq!(state.elapsed_time, 0.0);
+        assert_eq!(state.delta_time, 0.0);
+        assert!(state.requested.is_none());
+        assert!(state.pending_events.is_empty());
+        assert!(state.is_editor);
     }
 }

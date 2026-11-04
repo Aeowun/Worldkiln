@@ -34,3 +34,10 @@ Development history for Worldkiln and AeoScript.
 - Improved visual consistency, including shadows and interface scaling.
 - Added better error logging to make troubleshooting exported games easier.
 - Improved single-executable offline packaging
+
+### AeoScript Game Controls
+
+- Added game.quit() and game.restart() to control the current game instance, with saved values preserved when restarting.
+- Added game.pause() and game.resume() for single-player games.
+- Added game quit, pause, and resume events for creator-authored lifecycle handling.
+- Added game timing, pause-state, and Editor/standalone context properties.

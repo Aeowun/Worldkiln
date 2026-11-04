@@ -208,6 +208,7 @@ pub struct App {
     pub(crate) recovery_last: Instant,
     pub(crate) recovery_job: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
     pub(crate) packaging_open: bool,
+    game_state: std::sync::Arc<std::sync::Mutex<crate::scripting::api::GameLifecycleState>>,
     pub(crate) packaging_options: crate::engine::build::GameBuildOptions,
     pub(crate) packaging_run_after: bool,
     pub(crate) packaging_status: String,
@@ -480,6 +481,13 @@ impl App {
             last_autosave_interval: crate::engine::preferences::AutosaveInterval::Off,
             last_autosave_failure: None,
             packaging_open: false,
+            game_state: std::sync::Arc::new(std::sync::Mutex::new(
+                crate::scripting::api::GameLifecycleState {
+                    is_editor: true,
+                    ..Default::default()
+                },
+            )),
+
             packaging_options: Default::default(),
             packaging_run_after: false,
             packaging_status: "Idle ? ready to package".into(),
@@ -567,6 +575,36 @@ impl App {
 
         self.last_frame_instant = now;
 
+        if self.view == View::Editor && self.editor.mode == EditorMode::Play {
+            let (request, paused, events) = {
+                let mut state = self.game_state.lock().unwrap();
+                state.advance(frame_time as f64);
+                let request = state.requested.take();
+                let paused = state.paused;
+                let events = std::mem::take(&mut state.pending_events);
+                (request, paused, events)
+            };
+            for event in events {
+                self.script_pending_events
+                    .push((event.to_string(), Vec::new()));
+            }
+            if let Some(request) = request {
+                self.script_pending_events
+                    .push(("game_on_quit".into(), Vec::new()));
+                self.update_gameplay(0.0);
+                match request {
+                    crate::scripting::api::GameLifecycleRequest::Quit => {
+                        self.editor.mode = EditorMode::Editor;
+                    }
+                    crate::scripting::api::GameLifecycleRequest::Restart => {
+                        self.restart_play_in_place(false);
+                        self.game_state.lock().unwrap().reset_session();
+                    }
+                }
+            }
+            let _ = paused;
+        }
+
         self.poll_live_project_sync();
         self.check_autosave();
 
@@ -584,9 +622,10 @@ impl App {
                     .as_mut()
                     .is_some_and(|state| state.take_restart_request())
             {
-                self.restart_play_in_place();
+                self.restart_play_in_place(true);
             }
             if self.editor.mode == EditorMode::Play && self.last_mode == EditorMode::Editor {
+                self.game_state.lock().unwrap().reset_session();
                 self.play_mode_hint_started = Some(Instant::now());
 
                 let has_dirty_scripts = self
@@ -765,7 +804,13 @@ impl App {
                         self.development_capture.borrow().config().detailed,
                     );
                 }
-                self.update_gameplay(frame_time);
+                let delta = if self.game_state.lock().unwrap().paused {
+                    0.0
+                } else {
+                    frame_time
+                };
+                self.update_gameplay(delta);
+
                 if capture {
                     let (samples, dropped) = crate::engine::development_capture::finish();
                     self.development_capture
@@ -896,7 +941,7 @@ impl App {
         }
     }
 
-    fn restart_play_in_place(&mut self) {
+    fn restart_play_in_place(&mut self, reset_saved_values: bool) {
         self.runtime_scene_analysis.stop();
         self.stop_scripting();
         self.physics_clock.reset();
@@ -917,15 +962,17 @@ impl App {
         if let Some(authored) = self.saved_editor_actors.as_ref() {
             self.world.actors = authored.clone();
         }
-        if let Some(state) = self.save_state.as_mut() {
-            if let Err(error) = state.wipe() {
-                self.editor.append_output(&format!(
-                    "[ERROR] [Game restart] Save reset failed: {error}\n"
-                ));
-                return;
+        if reset_saved_values {
+            if let Some(state) = self.save_state.as_mut() {
+                if let Err(error) = state.wipe() {
+                    self.editor.append_output(&format!(
+                        "[ERROR] [Game restart] Save reset failed: {error}\n"
+                    ));
+                    return;
+                }
             }
+            self.editor.append_output("[Game restart] Saved values reset; field identities preserved. Restoring authored runtime.\n");
         }
-        self.editor.append_output("[Game restart] Saved values reset; field identities preserved. Restoring authored runtime.\n");
         let configured_camera = self
             .project_manager
             .current_project

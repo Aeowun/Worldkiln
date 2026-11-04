@@ -7393,6 +7393,7 @@ entity Test {
         let mut pending_spawns = Vec::new();
         let mut pending_destroys = Vec::new();
         let mut bridge = crate::scripting::host::ScriptHostBridge {
+            game_state: None,
             entity_manager: &mut th.entity_manager,
             attachment_system: None,
             world: &mut th.world,
@@ -8186,6 +8187,7 @@ entity Trigger {
         let mut pending_destroys = Vec::new();
         {
             let mut bridge = crate::scripting::host::ScriptHostBridge {
+                game_state: None,
                 entity_manager: &mut em,
                 attachment_system: None,
                 world: &mut world,
@@ -8777,6 +8779,7 @@ entity Spawner {
         let mut pending_destroys = Vec::new();
 
         let mut bridge = crate::scripting::host::ScriptHostBridge {
+            game_state: None,
             entity_manager: &mut em,
             attachment_system: None,
             world: &mut world,

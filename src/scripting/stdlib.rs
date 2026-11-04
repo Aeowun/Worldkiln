@@ -369,6 +369,9 @@ pub fn resolve_stdlib_property(
     property_name: &str,
     host: &mut HostContext,
 ) -> Result<Option<Value>, String> {
+    if object_name == "game" {
+        return Ok(host.engine.game_property(property_name));
+    }
     if object_name == "proj" && property_name == "sky" {
         return Ok(Some(Value::Namespace("world-sky".into())));
     }
@@ -428,6 +431,19 @@ pub fn call_stdlib_function(
     };
 
     match object_name {
+        "game" => {
+            if !args.is_empty() {
+                return Err(format!("game.{method_name} expects no arguments"));
+            }
+            match method_name {
+                "quit" | "restart" | "pause" | "resume" => {
+                    _host.engine.game_command(method_name)?;
+                    Ok(Some(Value::Nil))
+                }
+                _ => Err(format!("unknown function 'game.{method_name}'")),
+            }
+        }
+
         "postprocess" => match method_name {
             "passes" => {
                 if !args.is_empty() {
