@@ -15,11 +15,12 @@ Development history for Worldkiln and AeoScript.
 
 ## 1.0.1
 
-> This update improves Worldkiln's stability, object placement, physics, navigation, and lighting. It also brings exported games closer to the experience you get when playing inside the Editor.
+> Worldkiln V1.0.1 introduces AEOWUN account integration and direct game publishing, alongside improvements to Editor stability, physics, lighting, and standalone game reliability. This update makes it easier to build, test, and share games while delivering a more consistent experience between the Editor and exported games.
 
 ### Editor Improvements
 
 - Added AEOWUN member sign-in and game submission for review from the Editor.
+- Added the latest Worldkiln developer notes to the Home screen.
 - Added Publish to Aeowun beneath Manage for built games on the Home screen.
 - Fixed the Packaging panel scrolling to keep publishing controls accessible.
 

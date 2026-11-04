@@ -3,6 +3,7 @@
 // Licensed under the AeoEngine Source-Available License.
 // See LICENSE in the repository root for the complete terms.
 pub mod app_home;
+mod home_dev_notes;
 pub mod app_input;
 pub mod app_project;
 pub mod app_render;
@@ -130,6 +131,7 @@ pub struct App {
     pub show_open_project_dialog: bool,
     pub show_unsaved_scripts_dialog: bool,
     pub home_emblem_texture: Option<egui::TextureHandle>,
+    pub(crate) home_dev_notes: home_dev_notes::DeveloperNotesFeed,
     pub(crate) home_member: crate::engine::member_services::MemberClient,
     pub(crate) home_publish_build: Option<crate::project::project::BuiltGame>,
     pub(crate) home_management: Option<app_home::HomeManagement>,
@@ -425,6 +427,7 @@ impl App {
             show_open_project_dialog: false,
             show_unsaved_scripts_dialog: false,
             home_emblem_texture: None,
+            home_dev_notes: home_dev_notes::DeveloperNotesFeed::default(),
             home_member: crate::engine::member_services::MemberClient::default(),
             home_publish_build: None,
             home_management: None,
@@ -577,6 +580,7 @@ impl App {
     }
 
     pub fn update(&mut self, egui_ctx: &egui::Context) {
+        self.home_dev_notes.update(egui_ctx, self.view == View::Home);
         self.home_member.poll(egui_ctx);
         self.poll_project_load();
         if self.project_loading() {

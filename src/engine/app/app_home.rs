@@ -1357,11 +1357,27 @@ impl App {
 
                 ui.add_space(gap);
 
+                let column_height = ui.available_height();
+                let builds_height = (column_height * 0.48).max(96.0);
                 ui.allocate_ui_with_layout(
-                    egui::vec2(builds_width, ui.available_height()),
+                    egui::vec2(builds_width, column_height),
                     egui::Layout::top_down(egui::Align::Min),
                     |ui| {
-                        Self::home_recent_card(ui, |ui| self.draw_home_recent_builds(ui));
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(builds_width, builds_height),
+                            egui::Layout::top_down(egui::Align::Min),
+                            |ui| {
+                                Self::home_recent_card(ui, |ui| self.draw_home_recent_builds(ui));
+                            },
+                        );
+                        ui.add_space(10.0);
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(builds_width, (column_height - builds_height - 10.0).max(96.0)),
+                            egui::Layout::top_down(egui::Align::Min),
+                            |ui| {
+                                Self::home_recent_card(ui, |ui| self.draw_home_developer_notes(ui));
+                            },
+                        );
                     },
                 );
             });
@@ -1372,6 +1388,78 @@ impl App {
                     Self::home_recent_card(ui, |ui| self.draw_home_recent_projects(ui, next_view));
                     ui.add_space(16.0);
                     Self::home_recent_card(ui, |ui| self.draw_home_recent_builds(ui));
+                    ui.add_space(16.0);
+                    Self::home_recent_card(ui, |ui| self.draw_home_developer_notes(ui));
+                });
+        }
+    }
+
+    pub(crate) fn draw_home_developer_notes(&mut self, ui: &mut egui::Ui) {
+        ui.label(
+            RichText::new("DEVELOPER NOTES")
+                .monospace()
+                .strong()
+                .size(13.0),
+        );
+        ui.label(
+            RichText::new("Latest Worldkiln updates")
+                .color(ui.visuals().widgets.noninteractive.fg_stroke.color)
+                .size(11.0),
+        );
+        if self.home_dev_notes.unavailable && !self.home_dev_notes.notes.is_empty() {
+            ui.label(
+                RichText::new("Offline — showing saved notes when available")
+                    .size(10.0)
+                    .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
+            );
+        }
+        if let Some(last_updated) = self.home_dev_notes.last_updated.as_deref() {
+            if let Ok(date) = chrono::DateTime::parse_from_rfc3339(last_updated) {
+                ui.label(
+                    RichText::new(format!(
+                        "Updated {}",
+                        date.with_timezone(&chrono::Local).format("%b %-d, %Y %I:%M %p")
+                    ))
+                    .size(10.0)
+                    .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
+                );
+            }
+        }
+        ui.add_space(6.0);
+
+        if self.home_dev_notes.notes.is_empty() {
+            let message = if self.home_dev_notes.unavailable {
+                "Development notes temporarily unavailable"
+            } else if self.home_dev_notes.loading() {
+                "Loading updates..."
+            } else {
+                "No published developer notes."
+            };
+            ui.label(RichText::new(message).size(11.0));
+        } else {
+            egui::ScrollArea::vertical()
+                .id_salt("home_developer_notes_scroll")
+                .auto_shrink([false, false])
+                .show(ui, |ui| {
+                    ui.set_min_width(ui.available_width());
+                    for note in self.home_dev_notes.notes.iter().take(10) {
+                        ui.label(
+                            RichText::new(note.category.to_uppercase())
+                                .monospace()
+                                .size(10.0)
+                                .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
+                        );
+                        ui.label(RichText::new(&note.title).strong().size(12.0));
+                        if !note.summary.is_empty() {
+                            ui.label(RichText::new(&note.summary).size(11.0));
+                        }
+                        if let Some(link) = note.link_url.as_deref() {
+                            ui.hyperlink_to("Read more", link);
+                        }
+                        ui.add_space(6.0);
+                        ui.separator();
+                        ui.add_space(6.0);
+                    }
                 });
         }
     }
