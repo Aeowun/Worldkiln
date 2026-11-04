@@ -61,7 +61,7 @@ rand = "0.8"
 rodio = "0.20"
 # Windows-native MP4/H264 decode; no ffmpeg.exe dependency.
 windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_Media_MediaFoundation", "Win32_System_Com"] }
-reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "rustls", "json", "query"] }
 zip = { version = "8.6", default-features = false, features = ["deflate"] }
 flate2 = "1.1"
 rerecast = "=0.4.0"

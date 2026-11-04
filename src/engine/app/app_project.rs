@@ -544,6 +544,7 @@ impl App {
         if self.game_build_job.is_some() {
             return;
         }
+        self.last_built_zip = None;
         let Some(project_path) = self.project_manager.current_project.clone() else {
             self.editor
                 .append_output("\n[BUILD ERROR] No project is currently open.\n");
@@ -615,6 +616,7 @@ BUILD STARTED\n\
     fn finish_game_build(&mut self, result: Result<crate::engine::build::BuildResult, String>) {
         match result {
             Ok(result) => {
+                self.last_built_zip = result.archive_path.clone();
                 if !result.output_log.trim().is_empty() {
                     self.editor.append_output(&result.output_log);
 
@@ -648,6 +650,7 @@ BUILD STARTED\n\
             }
 
             Err(error) => {
+                self.last_built_zip = None;
                 self.editor.append_output(&format!(
                     "[BUILD FAILED]\n{}\n\
                          ========================================\n",

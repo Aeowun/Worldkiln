@@ -130,6 +130,8 @@ pub struct App {
     pub show_open_project_dialog: bool,
     pub show_unsaved_scripts_dialog: bool,
     pub home_emblem_texture: Option<egui::TextureHandle>,
+    pub(crate) home_member: crate::engine::member_services::MemberClient,
+    pub(crate) home_publish_build: Option<crate::project::project::BuiltGame>,
     pub(crate) home_management: Option<app_home::HomeManagement>,
     pub(crate) home_management_message: Option<String>,
     pub(crate) home_recovery: Option<(std::path::PathBuf, Vec<recovery::RecoveryCandidate>, usize)>,
@@ -212,6 +214,11 @@ pub struct App {
     pub(crate) packaging_options: crate::engine::build::GameBuildOptions,
     pub(crate) packaging_run_after: bool,
     pub(crate) packaging_status: String,
+    pub(crate) last_built_zip: Option<std::path::PathBuf>,
+    pub(crate) publish_description: String,
+    pub(crate) publish_rights: bool,
+    pub(crate) publish_safety: bool,
+    pub(crate) publish_publication: bool,
     pub(crate) packaging_cancel: std::sync::Arc<std::sync::atomic::AtomicBool>,
     pub(crate) game_build_job:
         Option<std::sync::mpsc::Receiver<Result<crate::engine::build::BuildResult, String>>>,
@@ -418,6 +425,8 @@ impl App {
             show_open_project_dialog: false,
             show_unsaved_scripts_dialog: false,
             home_emblem_texture: None,
+            home_member: crate::engine::member_services::MemberClient::default(),
+            home_publish_build: None,
             home_management: None,
             home_management_message: None,
             home_recovery: None,
@@ -491,6 +500,11 @@ impl App {
             packaging_options: Default::default(),
             packaging_run_after: false,
             packaging_status: "Idle ? ready to package".into(),
+            last_built_zip: None,
+            publish_description: String::new(),
+            publish_rights: false,
+            publish_safety: false,
+            publish_publication: false,
             packaging_cancel: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
             game_build_job: None,
             recovery_last_failure: None,
@@ -563,6 +577,7 @@ impl App {
     }
 
     pub fn update(&mut self, egui_ctx: &egui::Context) {
+        self.home_member.poll(egui_ctx);
         self.poll_project_load();
         if self.project_loading() {
             egui_ctx.request_repaint();

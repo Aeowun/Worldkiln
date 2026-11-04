@@ -19,6 +19,10 @@ Development history for Worldkiln and AeoScript.
 
 ### Editor Improvements
 
+- Added AEOWUN member sign-in and game submission for review from the Editor.
+- Added Publish to Aeowun beneath Manage for built games on the Home screen.
+- Fixed the Packaging panel scrolling to keep publishing controls accessible.
+
 - Fixed Actors appearing too high or too low when placed or moved in the Editor.
 - Fixed collision issues affecting rotated Actors and fast-moving Characters.
 - Fixed Actors taking incorrect routes, missing turns, or continuing to move after reaching their destination.

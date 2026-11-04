@@ -199,6 +199,10 @@ impl App {
                         }
                     });
                 });
+                egui::ScrollArea::vertical()
+                    .id_salt("worldkiln_packaging_options_scroll")
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
                 ui.label("WORLDKILN / BUILD GAME");
                 ui.separator();
                 ui.label("TARGET PLATFORM");
@@ -361,8 +365,73 @@ impl App {
                         run_after = true;
                     }
                 });
+                ui.separator();
+                ui.label(egui::RichText::new("PUBLISH TO AEOWUN").strong());
+                use crate::engine::member_services::{MemberDisplay, PublishStatus};
+                if let MemberDisplay::SignedIn(member) = self.home_member.display.clone() {
+                    ui.label(format!("Signed in as @{}", member.handle));
+                    let archive = self.last_built_zip.clone();
+                    let eligible = archive.as_ref().is_some_and(|path| path.is_file())
+                        && self.packaging_options.target == TargetPlatform::Windows
+                        && self.packaging_options.configuration == GameBuildConfiguration::Shipping
+                        && self.packaging_options.format == GameBuildFormat::ZipArchive;
+                    if let Some(path) = archive.as_ref().filter(|_| eligible) {
+                        ui.label(format!("Shipping archive: {}", path.display()));
+                        ui.label("PUBLIC GAME DESCRIPTION");
+                        ui.add(egui::TextEdit::multiline(&mut self.publish_description)
+                            .desired_rows(3)
+                            .hint_text("Describe what players can expect."));
+                        ui.checkbox(&mut self.publish_rights, "I have the right to distribute this game and its content.");
+                        ui.checkbox(&mut self.publish_safety, "I have checked the build for private data and unsafe files.");
+                        ui.checkbox(&mut self.publish_publication, "I understand publication requires review and makes the approved ZIP publicly downloadable.");
+                        let uploading = matches!(self.home_member.publishing, PublishStatus::Uploading { .. });
+                        let valid = !running && !uploading
+                            && self.publish_rights && self.publish_safety && self.publish_publication
+                            && !self.publish_description.trim().is_empty()
+                            && !self.packaging_options.title.trim().is_empty()
+                            && !self.packaging_options.game_version.trim().is_empty();
+                        if ui.add_enabled(valid, egui::Button::new("SUBMIT FOR REVIEW")).clicked() {
+                            self.home_member.publish(
+                                path.clone(),
+                                self.packaging_options.title.clone(),
+                                self.packaging_options.game_version.clone(),
+                                self.publish_description.clone()
+                            );
+                        }
+                    } else {
+                        ui.label("Build a Windows Shipping ZIP to enable publishing.");
+                    }
+                    match &self.home_member.publishing {
+                        PublishStatus::Idle => {}
+                        PublishStatus::Uploading { percent, phase } => {
+                            ui.label(format!("{phase}: {percent}%"));
+                            ui.add(egui::ProgressBar::new(*percent as f32 / 100.0));
+                            if ui.button("CANCEL UPLOAD").clicked() {
+                                self.home_member.cancel_publish();
+                            }
+                        }
+                        PublishStatus::Submitted(id) => {
+                            ui.label(format!("Submitted for private review ({id})."));
+                            ui.hyperlink_to("View your profile", format!(
+                                "https://aeowun.com/members/profile/?handle={}", member.handle));
+                        }
+                        PublishStatus::Failed(message) => {
+                            ui.colored_label(egui::Color32::from_rgb(230, 115, 100), message);
+                        }
+                    }
+                } else {
+                    ui.label("Sign in to publish games to your member profile.");
+                    if ui.button("OPEN MEMBER ACCOUNT").clicked() {
+                        self.home_member.dialog_open = true;
+                    }
+                }
+                    });
             });
+        if self.home_member.dialog_open {
+            self.draw_home_member_dialog(ctx);
+        }
         if !running && self.packaging_options != previous_options {
+            self.last_built_zip = None;
             if let Some(project) = &self.project_manager.current_project {
                 if let Err(error) =
                     crate::engine::build::save_packaging_options(project, &self.packaging_options)

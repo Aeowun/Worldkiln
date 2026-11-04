@@ -296,6 +296,7 @@ pub struct BuildResult {
     pub output_dir: PathBuf,
     pub executable: PathBuf,
     pub output_log: String,
+    pub archive_path: Option<PathBuf>,
 }
 
 fn project_name(project_path: &Path) -> String {
@@ -693,6 +694,7 @@ fn package_game_with_template_inner(
             output_dir: output_dir.clone(),
             executable,
             output_log: log,
+            archive_path: None,
         })
     })();
 
@@ -922,6 +924,7 @@ fn build_windows_game(
         result
             .output_log
             .push_str(&format!("Shareable archive: {}\n", zip_path.display()));
+        result.archive_path = Some(zip_path);
     }
     Ok(result)
 }

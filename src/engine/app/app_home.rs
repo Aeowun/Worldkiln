@@ -1250,6 +1250,8 @@ impl App {
 
         self.draw_home_dialogs(ctx, next_view);
         self.draw_home_management_dialogs(ctx);
+        self.draw_home_publish_dialog(ctx);
+        self.draw_home_member_dialog(ctx);
     }
 
     pub(crate) fn draw_home_main_content(
@@ -1554,7 +1556,7 @@ impl App {
                 for (index, game) in built_games.into_iter().enumerate() {
                     let row_width = ui.available_width();
                     let (rect, response) =
-                        ui.allocate_exact_size(egui::vec2(row_width, 48.0), egui::Sense::click());
+                        ui.allocate_exact_size(egui::vec2(row_width, 79.0), egui::Sense::click());
 
                     let hovered = response.hovered();
 
@@ -1619,8 +1621,8 @@ impl App {
                     );
 
                     let play_rect = egui::Rect::from_min_max(
-                        egui::pos2(rect.right() - 144.0, rect.top() + 10.0),
-                        egui::pos2(rect.right() - 90.0, rect.bottom() - 10.0),
+                        egui::pos2(rect.right() - 144.0, rect.top() + 7.0),
+                        egui::pos2(rect.right() - 90.0, rect.top() + 34.0),
                     );
 
                     let play_hovered = ui.rect_contains_pointer(play_rect);
@@ -1648,15 +1650,36 @@ impl App {
                     );
 
                     let manage_rect = egui::Rect::from_min_max(
-                        egui::pos2(rect.right() - 76.0, rect.top() + 10.0),
-                        egui::pos2(rect.right() - 8.0, rect.bottom() - 10.0),
+                        egui::pos2(rect.right() - 76.0, rect.top() + 7.0),
+                        egui::pos2(rect.right() - 8.0, rect.top() + 34.0),
                     );
                     self.draw_home_manage_menu(
                         ui,
                         manage_rect,
                         ManagementTarget::Build(game.clone()),
                     );
-                    if response.clicked() && !ui.rect_contains_pointer(manage_rect) {
+                    let publish_rect = egui::Rect::from_min_max(
+                        egui::pos2(rect.right() - 152.0, rect.top() + 43.0),
+                        egui::pos2(rect.right() - 8.0, rect.bottom() - 7.0),
+                    );
+                    ui.allocate_ui_at_rect(publish_rect, |ui| {
+                        if ui.add_sized(
+                            publish_rect.size(),
+                            egui::Button::new(
+                                RichText::new("PUBLISH TO AEOWUN").monospace().size(10.0),
+                            ),
+                        ).clicked() {
+                            self.home_publish_build = Some(game.clone());
+                            self.publish_description.clear();
+                            self.publish_rights = false;
+                            self.publish_safety = false;
+                            self.publish_publication = false;
+                        }
+                    });
+                    if response.clicked()
+                        && !ui.rect_contains_pointer(manage_rect)
+                        && !ui.rect_contains_pointer(publish_rect)
+                    {
                         match Command::new(&game.executable)
                             .current_dir(
                                 game.executable
@@ -1690,6 +1713,109 @@ impl App {
                     ui.add_space(6.0);
                 }
             });
+    }
+
+    fn draw_home_publish_dialog(&mut self, ctx: &egui::Context) {
+        let Some(game) = self.home_publish_build.clone() else {
+            return;
+        };
+        use crate::engine::member_services::{MemberDisplay, PublishStatus};
+        let mut open = true;
+        egui::Window::new("PUBLISH TO AEOWUN")
+            .id(egui::Id::new("worldkiln_home_publish_game"))
+            .collapsible(false)
+            .resizable(true)
+            .default_width(420.0)
+            .open(&mut open)
+            .show(ctx, |ui| {
+                ui.label(RichText::new(&game.project_name).strong());
+                ui.label(format!("Version {}", game.version));
+                ui.add_space(6.0);
+                ui.label("Worldkiln will package this existing game into a ZIP for submission.");
+                ui.label("Your local build stays unchanged. Public downloads require approval.");
+                ui.add_space(10.0);
+                if let MemberDisplay::SignedIn(member) = self.home_member.display.clone() {
+                    ui.label(format!("Signed in as @{}", member.handle));
+                    let folder = game.package_dir().ok().map(std::path::Path::to_path_buf);
+                    if !game.executable.is_file() || folder.as_ref().is_none_or(|p| !p.is_dir()) {
+                        ui.colored_label(
+                            egui::Color32::from_rgb(230, 115, 100),
+                            "This built game is missing. Rebuild the game first.",
+                        );
+                        return;
+                    }
+                    ui.add_space(6.0);
+                    ui.label("PUBLIC GAME DESCRIPTION");
+                    ui.add(
+                        egui::TextEdit::multiline(&mut self.publish_description)
+                            .desired_rows(3)
+                            .hint_text("Describe what players can expect."),
+                    );
+                    ui.checkbox(
+                        &mut self.publish_rights,
+                        "I have the right to distribute this game and its content.",
+                    );
+                    ui.checkbox(
+                        &mut self.publish_safety,
+                        "I have checked this game for private data and unsafe files.",
+                    );
+                    ui.checkbox(
+                        &mut self.publish_publication,
+                        "I understand approved games become publicly downloadable.",
+                    );
+                    let status = self.home_member.publishing.clone();
+                    let uploading = matches!(status, PublishStatus::Uploading { .. });
+                    let valid = !uploading
+                        && self.publish_rights
+                        && self.publish_safety
+                        && self.publish_publication
+                        && !self.publish_description.trim().is_empty();
+                    if ui
+                        .add_enabled(valid, egui::Button::new("SUBMIT FOR REVIEW"))
+                        .clicked()
+                    {
+                        if let Some(folder) = folder {
+                            self.home_member.publish_built_game(
+                                folder,
+                                game.project_name.clone(),
+                                game.version.clone(),
+                                self.publish_description.clone(),
+                            );
+                        }
+                    }
+                    match status {
+                        PublishStatus::Idle => {}
+                        PublishStatus::Uploading { percent, phase } => {
+                            ui.label(format!("{phase}: {percent}%"));
+                            ui.add(egui::ProgressBar::new(percent as f32 / 100.0));
+                            if ui.button("CANCEL UPLOAD").clicked() {
+                                self.home_member.cancel_publish();
+                            }
+                        }
+                        PublishStatus::Submitted(id) => {
+                            ui.label(format!("Submitted for private review ({id})."));
+                            ui.hyperlink_to(
+                                "View your Aeowun profile",
+                                format!(
+                                    "https://aeowun.com/members/profile/?handle={}",
+                                    member.handle
+                                ),
+                            );
+                        }
+                        PublishStatus::Failed(message) => {
+                            ui.colored_label(egui::Color32::from_rgb(230, 115, 100), message);
+                        }
+                    }
+                } else {
+                    ui.label("Sign in to AEOWUN to publish this game.");
+                    if ui.button("SIGN IN TO AEOWUN").clicked() {
+                        self.home_member.dialog_open = true;
+                    }
+                }
+            });
+        if !open {
+            self.home_publish_build = None;
+        }
     }
 
     fn draw_home_manage_menu(
@@ -1944,7 +2070,107 @@ impl App {
         }
     }
 
-    pub(crate) fn draw_home_footer(&self, ui: &mut egui::Ui) {
+    pub(crate) fn draw_home_member_dialog(&mut self, ctx: &egui::Context) {
+        if !self.home_member.dialog_open {
+            return;
+        }
+
+        let mut open = true;
+        egui::Window::new("AEOWUN MEMBER")
+            .id(egui::Id::new("worldkiln_member_account"))
+            .collapsible(false)
+            .resizable(false)
+            .default_width(380.0)
+            .max_width(480.0)
+            .open(&mut open)
+            .show(ctx, |ui| {
+                use crate::engine::member_services::MemberDisplay;
+                match self.home_member.display.clone() {
+                    MemberDisplay::SignedOut => {
+                        ui.label("Worldkiln works without signing in.");
+                        ui.add_space(10.0);
+                        if let Some(message) = self.home_member.error {
+                            ui.colored_label(egui::Color32::from_rgb(230, 115, 100), message);
+                            ui.add_space(6.0);
+                        }
+                        ui.horizontal(|ui| {
+                            let title = if self.home_member.error.is_some() {
+                                "Try again"
+                            } else {
+                                "Sign in"
+                            };
+                            if ui.button(title).clicked() {
+                                self.home_member.sign_in();
+                            }
+                            if ui.button("Create account").clicked() {
+                                ctx.open_url(egui::OpenUrl::new_tab(
+                                    "https://aeowun.com/members/signup/".to_owned(),
+                                ));
+                            }
+                        });
+                    }
+                    MemberDisplay::Starting => {
+                        ui.horizontal(|ui| {
+                            ui.spinner();
+                            ui.label("Sign in");
+                        });
+                        ui.add_space(8.0);
+                        if ui.button("Cancel").clicked() {
+                            self.home_member.cancel();
+                        }
+                    }
+                    MemberDisplay::AwaitingApproval(prompt) => {
+                        ui.hyperlink_to(
+                            "Approve this device in your browser.",
+                            &prompt.verification_uri,
+                        );
+                        ui.add_space(8.0);
+                        ui.label(
+                            RichText::new(&prompt.user_code)
+                                .monospace()
+                                .strong()
+                                .size(22.0),
+                        );
+                        ui.add_space(8.0);
+                        ui.horizontal(|ui| {
+                            if ui.button("Copy code").clicked() {
+                                ui.output_mut(|output| {
+                                    output.copied_text = prompt.user_code.clone();
+                                });
+                            }
+                            if ui.button("Cancel").clicked() {
+                                self.home_member.cancel();
+                            }
+                        });
+                    }
+                    MemberDisplay::SignedIn(member) => {
+                        ui.label(RichText::new(&member.display_name).strong());
+                        ui.label(
+                            RichText::new(format!("@{}", member.handle))
+                                .monospace()
+                                .size(12.0),
+                        );
+                        ui.add_space(10.0);
+                        ui.horizontal(|ui| {
+                            if ui.button("Manage account").clicked() {
+                                ctx.open_url(egui::OpenUrl::new_tab(
+                                    "https://aeowun.com/members/".to_owned(),
+                                ));
+                            }
+                            if ui.button("Switch account").clicked() {
+                                self.home_member.switch_account();
+                            }
+                            if ui.button("Sign out").clicked() {
+                                self.home_member.sign_out();
+                            }
+                        });
+                    }
+                }
+            });
+        self.home_member.dialog_open = open;
+    }
+
+    pub(crate) fn draw_home_footer(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 6.0;
 
@@ -1956,22 +2182,23 @@ impl App {
                     .size(10.0),
             );
 
-            ui.label(
-                RichText::new(
-                    "Features marked BETA are still in development and may change as they mature.",
-                )
-                .size(10.0)
-                .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
-            );
+            if ui.available_width() >= 600.0 {
+                ui.label(
+                    RichText::new(
+                        "Features marked BETA are still in development and may change as they mature.",
+                    )
+                    .size(10.0)
+                    .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
+                );
+            }
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.label(
-                    RichText::new("AEOWUN ONLINE - COMING SOON")
-                        .monospace()
-                        .strong()
-                        .size(10.0)
-                        .color(ui.visuals().widgets.noninteractive.fg_stroke.color),
-                );
+                if ui
+                    .small_button(RichText::new("AEOWUN MEMBER").monospace().size(10.0))
+                    .clicked()
+                {
+                    self.home_member.dialog_open = true;
+                }
             });
         });
     }

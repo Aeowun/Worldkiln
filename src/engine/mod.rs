@@ -4,6 +4,8 @@
 // See LICENSE in the repository root for the complete terms.
 #[cfg(feature = "editor")]
 pub mod app;
+#[cfg(feature = "editor")]
+pub(crate) mod member_services;
 
 #[cfg(feature = "editor")]
 pub mod install;

@@ -276,6 +276,7 @@ pub fn build_linux_game(
         Ok(BuildResult {
             output_dir: parent,
             executable: final_archive.clone(),
+            archive_path: Some(final_archive.clone()),
             output_log: format!(
                 "Linux x86_64 game archive: {}\nNative runtime: {}\nProject files: {}\n",
                 final_archive.display(),
