@@ -38,7 +38,8 @@ use winit::event::{DeviceEvent, Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::raw_window_handle::HasWindowHandle;
 
-use winit::window::{CursorGrabMode, WindowAttributes};
+use winit::window::WindowAttributes;
+use engine::mouse::WindowMouseCapture;
 
 use engine::app::App;
 use engine::install::{
@@ -240,7 +241,7 @@ fn main() {
         None,
     );
 
-    let mut last_applied_mouse: Option<(bool, bool)> = None;
+    let mut window_mouse = WindowMouseCapture::default();
 
     let perf_trace =
         editor_dev_preview && std::env::var("WORLDKILN_PERF_TRACE").as_deref() == Ok("1");
@@ -277,6 +278,7 @@ fn main() {
                 match &event {
                     WindowEvent::CloseRequested => {
                         if app.can_close_editor() {
+                            window_mouse.release(&window);
                             elwt.exit();
                         }
                     }
@@ -292,7 +294,13 @@ fn main() {
                     _ => {}
                 }
 
-                if !response.consumed {
+                if let WindowEvent::Focused(focused) = &event {
+                    window_mouse.focus_changed(*focused);
+                    if !focused {
+                        window_mouse.release(&window);
+                    }
+                }
+                if !response.consumed || matches!(&event, WindowEvent::Focused(false)) {
                     app.on_window_event(&event, egui_state.egui_ctx(), &window);
                 }
             }
@@ -301,7 +309,9 @@ fn main() {
                 event: DeviceEvent::MouseMotion { delta },
                 ..
             } => {
-                app.on_mouse_motion(delta.0, delta.1);
+                if window_mouse.focused() {
+                    app.on_mouse_motion(delta.0, delta.1);
+                }
             }
 
             Event::AboutToWait => {
@@ -318,24 +328,8 @@ fn main() {
                 app.update(egui_state.egui_ctx());
                 let profile_update = std::time::Instant::now();
 
-                let current_mouse = (app.mouse.cursor_visible, app.mouse.screen_locked);
-
-                if last_applied_mouse != Some(current_mouse) {
-                    let grab_mode = if app.mouse.screen_locked {
-                        CursorGrabMode::Locked
-                    } else {
-                        CursorGrabMode::None
-                    };
-
-                    if let Err(_err) = window.set_cursor_grab(grab_mode) {
-                        if app.mouse.screen_locked {
-                            let _ = window.set_cursor_grab(CursorGrabMode::Confined);
-                        }
-                    }
-
-                    window.set_cursor_visible(app.mouse.cursor_visible);
-
-                    last_applied_mouse = Some(current_mouse);
+                if let Err(error) = window_mouse.apply(&window, app.mouse.mode()) {
+                    eprintln!("[Mouse] {error}");
                 }
 
                 #[cfg(feature = "kilngraph")]

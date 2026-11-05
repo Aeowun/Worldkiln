@@ -25,6 +25,7 @@ pub mod diagnostics;
 pub mod entity;
 pub mod entity_package;
 pub mod entity_visual;
+pub mod input;
 pub mod mouse;
 pub mod particles;
 pub mod physics;

@@ -12,13 +12,14 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
+use crate::engine::mouse::WindowMouseCapture;
 use crate::game::input::{GameInputEvent, GameMouseButton};
 use crate::game::platform::GameLifecycleEvent;
 use winit::event::{DeviceEvent, ElementState, Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::keyboard::PhysicalKey;
 use winit::raw_window_handle::HasWindowHandle;
-use winit::window::{CursorGrabMode, Fullscreen, WindowAttributes};
+use winit::window::{Fullscreen, WindowAttributes};
 
 use crate::game::GameRuntime;
 
@@ -59,6 +60,20 @@ pub fn translate_window_event(
         }
         _ => None,
     }
+}
+
+pub fn should_forward_gameplay_input(event: &WindowEvent, ui_consumed: bool) -> bool {
+    !ui_consumed
+        || matches!(event, WindowEvent::Focused(false))
+        || matches!(
+            event,
+            WindowEvent::KeyboardInput { event: key, .. }
+                if key.state == ElementState::Released
+        )
+        || matches!(
+            event,
+            WindowEvent::MouseInput { state: ElementState::Released, .. }
+        )
 }
 
 pub fn run_game(
@@ -214,7 +229,7 @@ pub fn run_game(
         None,
     );
 
-    let mut last_applied_mouse: Option<(bool, bool)> = None;
+    let mut window_mouse = WindowMouseCapture::default();
     let mut last_frame_time = Instant::now();
 
     event_loop
@@ -227,6 +242,7 @@ pub fn run_game(
                         if let Some(file) = development_log.as_mut() {
                             let _ = writeln!(file, "Game closed by window request");
                         }
+                        window_mouse.release(&window);
                         game_runtime.notify_game_quit();
                         game_runtime.on_lifecycle(GameLifecycleEvent::Shutdown);
                         elwt.exit();
@@ -243,7 +259,13 @@ pub fn run_game(
                     _ => {}
                 }
 
-                if !response.consumed {
+                if let WindowEvent::Focused(focused) = &event {
+                    window_mouse.focus_changed(*focused);
+                    if !focused {
+                        window_mouse.release(&window);
+                        game_runtime.on_input(GameInputEvent::FocusLost);
+                    }
+                } else if should_forward_gameplay_input(&event, response.consumed) {
                     if let Some(input) = translate_window_event(
                         &event,
                         egui_state.egui_ctx().wants_keyboard_input(),
@@ -257,10 +279,12 @@ pub fn run_game(
                 event: DeviceEvent::MouseMotion { delta },
                 ..
             } => {
-                game_runtime.on_input(GameInputEvent::PointerMotion {
-                    dx: delta.0,
-                    dy: delta.1,
-                });
+                if window_mouse.is_relative(game_runtime.mouse.mode()) {
+                    game_runtime.on_input(GameInputEvent::PointerMotion {
+                        dx: delta.0,
+                        dy: delta.1,
+                    });
+                }
             }
             Event::AboutToWait => {
                 let now = Instant::now();
@@ -288,8 +312,7 @@ pub fn run_game(
                     match game_runtime.take_game_action() {
                         Some(crate::scripting::api::GameLifecycleRequest::Quit) => {
                             game_runtime.notify_game_quit();
-                            let _ = window.set_cursor_grab(CursorGrabMode::None);
-                            window.set_cursor_visible(true);
+                            window_mouse.release(&window);
                             game_runtime.on_lifecycle(GameLifecycleEvent::Shutdown);
                             elwt.exit();
                             return;
@@ -303,26 +326,8 @@ pub fn run_game(
 
                 }
 
-                let current_mouse = (
-                    game_runtime.mouse.cursor_visible,
-                    game_runtime.mouse.screen_locked,
-                );
-
-                if last_applied_mouse != Some(current_mouse) {
-                    let grab_mode = if game_runtime.mouse.screen_locked {
-                        CursorGrabMode::Locked
-                    } else {
-                        CursorGrabMode::None
-                    };
-
-                    if window.set_cursor_grab(grab_mode).is_err()
-                        && game_runtime.mouse.screen_locked
-                    {
-                        let _ = window.set_cursor_grab(CursorGrabMode::Confined);
-                    }
-
-                    window.set_cursor_visible(game_runtime.mouse.cursor_visible);
-                    last_applied_mouse = Some(current_mouse);
+                if let Err(error) = window_mouse.apply(&window, game_runtime.mouse.mode()) {
+                    eprintln!("[Mouse] {error}");
                 }
 
                 if !splash_active {

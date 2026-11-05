@@ -161,11 +161,14 @@ impl<'a> ScriptHostBridge<'a> {
 
                 match name {
                     "setCursorVisible" => {
-                        return Ok(Some(Value::Bool(self.mouse.cursor_visible)));
+                        return Ok(Some(Value::Bool(self.mouse.cursor_visible())));
                     }
 
                     "setScreenLocked" => {
-                        return Ok(Some(Value::Bool(self.mouse.screen_locked)));
+                        return Ok(Some(Value::Bool(self.mouse.screen_locked())));
+                    }
+                    "mode" | "setMode" => {
+                        return Ok(Some(Value::String(self.mouse.mode().as_str().into())));
                     }
 
                     _ => {}
@@ -940,12 +943,16 @@ impl<'a> ScriptHostBridge<'a> {
 
                 match name {
                     "setCursorVisible" => {
-                        self.mouse.cursor_visible = value.as_bool()?;
+                        self.mouse.set_cursor_visible(value.as_bool()?);
                         return Ok(true);
                     }
 
                     "setScreenLocked" => {
-                        self.mouse.screen_locked = value.as_bool()?;
+                        self.mouse.set_screen_locked(value.as_bool()?);
+                        return Ok(true);
+                    }
+                    "mode" | "setMode" => {
+                        self.mouse.set_mode(crate::engine::mouse::MouseMode::parse(value.as_string()?)?);
                         return Ok(true);
                     }
 
@@ -5636,8 +5643,8 @@ fn destroy_via_entity() {
 
         bridge.mouse.set_play_defaults();
 
-        assert_eq!(bridge.mouse.cursor_visible, false);
-        assert_eq!(bridge.mouse.screen_locked, true);
+        assert_eq!(bridge.mouse.cursor_visible(), false);
+        assert_eq!(bridge.mouse.screen_locked(), true);
 
         assert_eq!(
             bridge
@@ -5665,8 +5672,8 @@ fn destroy_via_entity() {
                 .unwrap()
         );
 
-        assert_eq!(bridge.mouse.cursor_visible, true);
-        assert_eq!(bridge.mouse.screen_locked, false);
+        assert_eq!(bridge.mouse.cursor_visible(), true);
+        assert_eq!(bridge.mouse.screen_locked(), false);
     }
 
     #[test]

@@ -117,8 +117,6 @@ impl GameRuntime {
                 self.gameplay_mouse_buttons = 0;
                 self.jump_requested = false;
                 self.orbit_delta = [0.0, 0.0];
-                self.mouse.screen_locked = false;
-                self.mouse.cursor_visible = true;
             }
             GameInputEvent::MouseButton {
                 button,
@@ -146,7 +144,7 @@ impl GameRuntime {
                 }
             }
             GameInputEvent::PointerMotion { dx, dy } => {
-                if self.mouse.screen_locked {
+                if self.mouse.mode().uses_relative_motion() {
                     self.orbit_delta[0] += dx as f32;
                     self.orbit_delta[1] += dy as f32;
                 }

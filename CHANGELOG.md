@@ -23,7 +23,9 @@ Development history for Worldkiln and AeoScript.
 - Added the latest Worldkiln developer notes to the Home screen.
 - Added Publish to Aeowun beneath Manage for built games on the Home screen.
 - Fixed the Packaging panel scrolling to keep publishing controls accessible.
-
+- Reworked mouse capture and cursor handling for more reliable behavior in the Editor and during gameplay.
+- Improved keyboard and mouse input handling when switching between game windows and other applications.
+- Fixed mouse capture and cursor visibility issues when opening menus or returning to gameplay.
 - Fixed Actors appearing too high or too low when placed or moved in the Editor.
 - Fixed collision issues affecting rotated Actors and fast-moving Characters.
 - Fixed Actors taking incorrect routes, missing turns, or continuing to move after reaching their destination.

@@ -19,13 +19,14 @@ use std::sync::Arc;
 use winit::event::{DeviceEvent, Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::raw_window_handle::HasWindowHandle;
-use winit::window::{CursorGrabMode, Fullscreen, WindowAttributes};
+use winit::window::{Fullscreen, WindowAttributes};
 
+use Worldkiln::engine::mouse::WindowMouseCapture;
 use Worldkiln::game::GameRuntime;
 
 use Worldkiln::game::input::GameInputEvent;
 use Worldkiln::game::platform::GameLifecycleEvent;
-use Worldkiln::game::platform::desktop::translate_window_event;
+use Worldkiln::game::platform::desktop::{should_forward_gameplay_input, translate_window_event};
 fn game_data_path() -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     game_data_path_for_executable(&exe)
@@ -187,7 +188,7 @@ fn main() {
         None,
     );
 
-    let mut last_applied_mouse: Option<(bool, bool)> = None;
+    let mut window_mouse = WindowMouseCapture::default();
 
     let mut last_frame_time = std::time::Instant::now();
 
@@ -198,6 +199,7 @@ fn main() {
 
                 match &event {
                     WindowEvent::CloseRequested => {
+                        window_mouse.release(&window);
                         game_runtime.notify_game_quit();
                         game_runtime.on_lifecycle(GameLifecycleEvent::Shutdown);
                         elwt.exit();
@@ -212,7 +214,13 @@ fn main() {
                     _ => {}
                 }
 
-                if !response.consumed {
+                if let WindowEvent::Focused(focused) = &event {
+                    window_mouse.focus_changed(*focused);
+                    if !focused {
+                        window_mouse.release(&window);
+                        game_runtime.on_input(GameInputEvent::FocusLost);
+                    }
+                } else if should_forward_gameplay_input(&event, response.consumed) {
                     if let Some(input) = translate_window_event(
                         &event,
                         egui_state.egui_ctx().wants_keyboard_input(),
@@ -227,10 +235,12 @@ fn main() {
                 event: DeviceEvent::MouseMotion { delta },
                 ..
             } => {
-                game_runtime.on_input(GameInputEvent::PointerMotion {
-                    dx: delta.0,
-                    dy: delta.1,
-                });
+                if window_mouse.is_relative(game_runtime.mouse.mode()) {
+                    game_runtime.on_input(GameInputEvent::PointerMotion {
+                        dx: delta.0,
+                        dy: delta.1,
+                    });
+                }
             }
 
             Event::AboutToWait => {
@@ -242,8 +252,7 @@ fn main() {
                 match game_runtime.take_game_action() {
                     Some(Worldkiln::scripting::api::GameLifecycleRequest::Quit) => {
                         game_runtime.notify_game_quit();
-                        let _ = window.set_cursor_grab(CursorGrabMode::None);
-                        window.set_cursor_visible(true);
+                        window_mouse.release(&window);
                         game_runtime.on_lifecycle(GameLifecycleEvent::Shutdown);
                         elwt.exit();
                         return;
@@ -255,27 +264,8 @@ fn main() {
                     None => {}
                 }
 
-                let current_mouse = (
-                    game_runtime.mouse.cursor_visible,
-                    game_runtime.mouse.screen_locked,
-                );
-
-                if last_applied_mouse != Some(current_mouse) {
-                    let grab_mode = if game_runtime.mouse.screen_locked {
-                        CursorGrabMode::Locked
-                    } else {
-                        CursorGrabMode::None
-                    };
-
-                    if let Err(_err) = window.set_cursor_grab(grab_mode) {
-                        if game_runtime.mouse.screen_locked {
-                            let _ = window.set_cursor_grab(CursorGrabMode::Confined);
-                        }
-                    }
-
-                    window.set_cursor_visible(game_runtime.mouse.cursor_visible);
-
-                    last_applied_mouse = Some(current_mouse);
+                if let Err(error) = window_mouse.apply(&window, game_runtime.mouse.mode()) {
+                    eprintln!("[Mouse] {error}");
                 }
 
                 game_runtime.render();
