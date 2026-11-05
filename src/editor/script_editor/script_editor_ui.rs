@@ -2,22 +2,16 @@
 // Copyright (c) 2026 Zachary Joubert / AEOWUN. All rights reserved.
 // Licensed under the AeoEngine Source-Available License.
 // See LICENSE in the repository root for the complete terms.
-use super::ScriptEditor;
 use super::script_editor_files::script_root_for_path;
 use super::script_editor_highlighting::{
     aeoscript_editor_theme, aeoscript_syntax, byte_offset_to_char_index, char_index_to_line,
     line_start_char_index,
 };
+use super::ScriptEditor;
 use crate::project::ScriptRoot;
 use egui::{Color32, RichText};
 use egui_code_editor::CodeEditor;
 use std::path::PathBuf;
-
-pub struct SearchResult {
-    pub path: PathBuf,
-    pub line: usize,
-    pub text: String,
-}
 
 const SCRIPT_API_DOC_LINKS: &[(&str, &str)] = &[
     ("Reference Index", "https://aeowun.com/docs/reference/"),
@@ -222,7 +216,8 @@ fn script_api_doc_for_symbol(symbol: &str) -> Option<ScriptApiDocTarget> {
         return Some(ScriptApiDocTarget {
             label: "Animation",
             url: "https://aeowun.com/aeoscript/api/entity/",
-            description: "Select character animations or drive supported Entity animation-layer playback.",
+            description:
+                "Select character animations or drive supported Entity animation-layer playback.",
         });
     }
 
@@ -307,11 +302,27 @@ impl ScriptEditor {
         project_path: &Option<PathBuf>,
         world: &mut crate::world::World,
     ) {
+        if ctx.input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::F)) {
+            self.open_find(false);
+        }
+        if ctx.input_mut(|input| input.consume_key(egui::Modifiers::CTRL, egui::Key::H)) {
+            self.open_find(true);
+        }
+        if self.show_search {
+            if ctx.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::F3)) {
+                self.navigate_search(true);
+            }
+            if ctx.input_mut(|input| input.consume_key(egui::Modifiers::SHIFT, egui::Key::F3)) {
+                self.navigate_search(false);
+            }
+            if ctx.input_mut(|input| input.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
+                self.show_search = false;
+            }
+        }
+
         egui::CentralPanel::default().show(ctx, |ui| {
             self.draw_workspace(ui, project_path, world);
         });
-
-        self.draw_search_results_window(ctx);
 
         self.draw_new_script_dialog(ctx, project_path);
         self.draw_rename_dialog(ctx, project_path, world);
@@ -319,37 +330,174 @@ impl ScriptEditor {
         self.draw_dirty_dialog(ctx, project_path, world);
     }
 
-    fn draw_search_results_window(&mut self, ctx: &egui::Context) {
-        if !self.show_search || self.search_results.is_empty() {
+    fn draw_find_panel(&mut self, ui: &mut egui::Ui, project_path: &Option<PathBuf>) {
+        if !self.show_search {
             return;
         }
 
-        let mut open_path = None;
+        let mut changed = false;
+        let mut navigate = None;
+        let mut replace_one = false;
+        let mut replace_all = false;
+        let mut select_result = None;
+        let mut close = false;
 
-        egui::Window::new(format!("SEARCH RESULTS ({})", self.search_results.len()))
-            .resizable(true)
-            .default_width(520.0)
-            .default_height(260.0)
-            .show(ctx, |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    for result in &self.search_results {
-                        let filename = result
-                            .path
-                            .file_name()
-                            .unwrap_or_default()
-                            .to_string_lossy();
-
-                        let label = format!("{}:{}  {}", filename, result.line, result.text.trim());
-
-                        if ui.selectable_label(false, label).clicked() {
-                            open_path = Some(result.path.clone());
-                        }
+        ui.group(|ui| {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new("Find").strong());
+                let response = ui.add(
+                    egui::TextEdit::singleline(&mut self.search_query)
+                        .id_salt("aeoscript_find_input")
+                        .hint_text("Find in script...")
+                        .desired_width(230.0),
+                );
+                changed |= response.changed();
+                if self.search_focus_requested {
+                    response.request_focus();
+                    self.search_focus_requested = false;
+                }
+                if response.has_focus() {
+                    let backward = ui.input_mut(|input| {
+                        input.consume_key(egui::Modifiers::SHIFT, egui::Key::Enter)
+                    });
+                    let forward = ui.input_mut(|input| {
+                        input.consume_key(egui::Modifiers::NONE, egui::Key::Enter)
+                    });
+                    if backward {
+                        navigate = Some(false);
+                    } else if forward {
+                        navigate = Some(true);
                     }
-                });
+                }
+                if ui
+                    .small_button("Previous")
+                    .on_hover_text("Previous match (Shift+Enter / Shift+F3)")
+                    .clicked()
+                {
+                    navigate = Some(false);
+                }
+                if ui
+                    .small_button("Next")
+                    .on_hover_text("Next match (Enter / F3)")
+                    .clicked()
+                {
+                    navigate = Some(true);
+                }
+                if ui
+                    .small_button("Close")
+                    .on_hover_text("Close find (Escape)")
+                    .clicked()
+                {
+                    close = true;
+                }
+            });
+            ui.horizontal(|ui| {
+                egui::ComboBox::from_id_salt("aeoscript_search_scope")
+                    .selected_text(match self.search_scope {
+                        super::SearchScope::Script => "Current Script",
+                        super::SearchScope::Project => "Entire Project",
+                    })
+                    .show_ui(ui, |ui| {
+                        changed |= ui
+                            .selectable_value(
+                                &mut self.search_scope,
+                                super::SearchScope::Script,
+                                "Current Script",
+                            )
+                            .changed();
+                        changed |= ui
+                            .selectable_value(
+                                &mut self.search_scope,
+                                super::SearchScope::Project,
+                                "Entire Project",
+                            )
+                            .changed();
+                    });
+                changed |= ui
+                    .checkbox(&mut self.search_match_case, "Match case")
+                    .changed();
+                changed |= ui
+                    .checkbox(&mut self.search_whole_word, "Whole word")
+                    .changed();
+                ui.checkbox(&mut self.search_replace, "Replace");
+                let count = self.search_results.len();
+                let position = self.search_active_index.map(|index| index + 1).unwrap_or(0);
+                ui.label(format!("{position} / {count}"));
             });
 
-        if let Some(path) = open_path {
-            self.open_file(path);
+            if self.search_replace {
+                ui.horizontal(|ui| {
+                    ui.label("Replace with:");
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.search_replacement)
+                            .desired_width(230.0),
+                    );
+                    if ui.small_button("Replace").clicked() {
+                        replace_one = true;
+                    }
+                    if ui.small_button("Replace All").clicked() {
+                        replace_all = true;
+                    }
+                });
+            }
+
+            if self.search_scope == super::SearchScope::Project {
+                let mut last_path: Option<&PathBuf> = None;
+                egui::ScrollArea::vertical()
+                    .id_salt("aeoscript_find_project_results")
+                    .max_height(180.0)
+                    .show(ui, |ui| {
+                        for (index, result) in self.search_results.iter().enumerate() {
+                            if last_path != Some(&result.path) {
+                                let name = project_path
+                                    .as_deref()
+                                    .and_then(|root| result.path.strip_prefix(root).ok())
+                                    .unwrap_or(&result.path);
+                                ui.label(RichText::new(name.to_string_lossy()).strong());
+                                last_path = Some(&result.path);
+                            }
+                            let caption = format!(
+                                "  {}:{}  {}",
+                                result.line,
+                                result.column,
+                                result.text.trim()
+                            );
+                            if ui
+                                .selectable_label(self.search_active_index == Some(index), caption)
+                                .clicked()
+                            {
+                                select_result = Some(index);
+                            }
+                        }
+                        if self.search_results.is_empty() {
+                            ui.label("No matches in this project's .aeo scripts.");
+                        }
+                    });
+            } else if self.search_results.is_empty() {
+                ui.small("No matches in current script.");
+            }
+        });
+
+        if changed {
+            self.perform_search();
+        }
+        if let Some(index) = select_result {
+            self.select_search_result(index);
+        }
+        if let Some(next) = navigate {
+            self.navigate_search(next);
+            self.search_focus_requested = true;
+        }
+        if replace_one {
+            self.replace_selected();
+            self.refresh_project_problems(project_path.as_deref());
+        }
+        if replace_all {
+            self.replace_all_matches();
+            self.refresh_project_problems(project_path.as_deref());
+        }
+        if close {
+            self.show_search = false;
         }
     }
 
@@ -853,22 +1001,18 @@ impl ScriptEditor {
 
                 ui.separator();
 
-                ui.toggle_value(&mut self.show_search, "Search");
-
-                if self.show_search {
-                    ui.label("Find:");
-
-                    let response = ui.add(
-                        egui::TextEdit::singleline(&mut self.search_query)
-                            .hint_text("Search in all scripts...")
-                            .desired_width(180.0),
-                    );
-
-                    if response.changed() {
-                        self.perform_search();
-                    }
+                if ui
+                    .button("Find")
+                    .on_hover_text("Find in current script (Ctrl+F)")
+                    .clicked()
+                {
+                    self.open_find(false);
                 }
             });
+
+            if self.show_search {
+                self.draw_find_panel(ui, project_path);
+            }
 
             ui.separator();
 
@@ -938,6 +1082,7 @@ impl ScriptEditor {
             .and_then(|frame| frame.line);
         let mut breakpoint_click = None;
         let mut project_problems_dirty = false;
+        let mut search_dirty = false;
 
         let Some(document) = self.open_documents.get_mut(&path) else {
             ui.centered_and_justified(|ui| {
@@ -993,6 +1138,61 @@ impl ScriptEditor {
 
                     let output = code_editor.show(ui, &mut document.source);
                     let response = &output.response;
+
+                    if self.show_search {
+                        let painter = ui.painter().with_clip_rect(response.rect);
+                        for (index, found) in self.search_results.iter().enumerate() {
+                            if found.path != path || found.end > document.source.len() {
+                                continue;
+                            }
+                            let start = byte_offset_to_char_index(&document.source, found.start);
+                            let end = byte_offset_to_char_index(&document.source, found.end);
+                            let start_rect = output
+                                .galley
+                                .pos_from_ccursor(egui::text::CCursor::new(start));
+                            let end_rect = output
+                                .galley
+                                .pos_from_ccursor(egui::text::CCursor::new(end));
+                            if start_rect.min.y != end_rect.min.y {
+                                continue;
+                            }
+                            let color = if self.search_active_index == Some(index) {
+                                Color32::from_rgba_unmultiplied(255, 184, 40, 90)
+                            } else {
+                                Color32::from_rgba_unmultiplied(255, 205, 55, 40)
+                            };
+                            let rect = egui::Rect::from_min_max(
+                                output.galley_pos + start_rect.min.to_vec2(),
+                                output.galley_pos
+                                    + egui::vec2(
+                                        end_rect.min.x.max(start_rect.min.x + 2.0),
+                                        start_rect.max.y,
+                                    ),
+                            );
+                            painter.rect_filled(rect, 1.0, color);
+                        }
+                    }
+
+                    let pending = self
+                        .search_undo_pending
+                        .iter()
+                        .filter(|(undo_path, _, _)| undo_path == &path)
+                        .cloned()
+                        .collect::<Vec<_>>();
+                    if !pending.is_empty() {
+                        let mut state = egui::text_edit::TextEditState::load(ui.ctx(), response.id)
+                            .unwrap_or_default();
+                        let mut undoer = state.undoer();
+                        let cursor = egui::text::CCursorRange::one(egui::text::CCursor::new(0));
+                        for (_, before, after) in pending {
+                            undoer.add_undo(&(cursor, before));
+                            undoer.add_undo(&(cursor, after));
+                        }
+                        state.set_undoer(undoer);
+                        state.store(ui.ctx(), response.id);
+                        self.search_undo_pending
+                            .retain(|(undo_path, _, _)| undo_path != &path);
+                    }
 
                     let marker_x = response.rect.left() - 9.0;
                     let marker_rect = egui::Rect::from_min_max(
@@ -1144,11 +1344,34 @@ impl ScriptEditor {
                         self.cursor_request = None;
                     }
 
+                    if let Some((request_path, start, end)) = &self.search_selection_request {
+                        if request_path == &path {
+                            response.request_focus();
+                            let mut state =
+                                egui::text_edit::TextEditState::load(ui.ctx(), response.id)
+                                    .unwrap_or_default();
+                            let first = byte_offset_to_char_index(&document.source, *start);
+                            let last = byte_offset_to_char_index(&document.source, *end);
+                            state.cursor.set_char_range(Some(egui::text::CCursorRange {
+                                primary: egui::text::CCursor::new(last),
+                                secondary: egui::text::CCursor::new(first),
+                            }));
+                            state.store(ui.ctx(), response.id);
+                            let caret = output
+                                .galley
+                                .pos_from_ccursor(egui::text::CCursor::new(first));
+                            self.editor_scroll_to_y =
+                                Some((caret.center().y - available_height * 0.35).max(0.0));
+                            self.search_selection_request = None;
+                        }
+                    }
+
                     if response.changed() {
                         document.dirty = document.source != document.original_source;
 
                         document.reparse();
                         project_problems_dirty = true;
+                        search_dirty = true;
                     }
 
                     let key_activity = ui.input(|input| {
@@ -1188,6 +1411,9 @@ impl ScriptEditor {
 
         if project_problems_dirty {
             self.refresh_project_problems(project_path.as_deref());
+        }
+        if search_dirty && self.show_search {
+            self.perform_search();
         }
     }
 

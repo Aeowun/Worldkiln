@@ -399,7 +399,8 @@ impl RigidSolver {
         mut velocity: Vec3,
         mass: f32,
         actor_keys: &HashSet<u64>,
-    ) -> (Vec3, Vec3, bool) {
+        max_walkable_slope_degrees: f32,
+) -> (Vec3, Vec3, bool) {
         use rapier3d::parry::query::{ShapeCastOptions, cast_shapes};
         use rapier3d::prelude::{Pose, Rotation};
 
@@ -496,8 +497,20 @@ impl RigidSolver {
             };
             position += remaining * closest_time + normal * 0.0001;
             remaining *= 1.0 - closest_time;
+            let steep = normal.y > 0.0
+                && !crate::character::collision::contact_is_walkable(normal, max_walkable_slope_degrees, false);
             remaining -= normal * remaining.dot(normal).min(0.0);
-            grounded |= normal.y > 0.65 && velocity.y <= 0.0;
+            if steep {
+                let wall = Vec3::new(normal.x, 0.0, normal.z).normalize_or_zero();
+                remaining -= wall * remaining.dot(wall).min(0.0);
+                if target.y <= from.y {
+                    remaining.y = remaining.y.min(0.0);
+                }
+            }
+            grounded |= crate::character::collision::contact_is_walkable(
+                normal, max_walkable_slope_degrees, false
+            ) && velocity.y <= 0.0;
+            let was_rising = velocity.y > 0.0;
             let other = &mut self.world.bodies[other_handle];
             if other.is_dynamic() {
                 let v = other.velocity_at_point(point);
@@ -511,6 +524,9 @@ impl RigidSolver {
                 other.apply_impulse_at_point(Vector::new(push.x, push.y, push.z), point, true);
             } else {
                 velocity -= normal * velocity.dot(normal).min(0.0);
+            }
+            if steep && !was_rising {
+                velocity.y = velocity.y.min(0.0);
             }
         }
         if let Some(body) = self.world.bodies.get_mut(handle) {

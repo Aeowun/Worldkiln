@@ -616,7 +616,7 @@ impl App {
                         self.editor.mode = EditorMode::Editor;
                     }
                     crate::scripting::api::GameLifecycleRequest::Restart => {
-                        self.restart_play_in_place(false);
+                        self.restart_play_in_place();
                         self.game_state.lock().unwrap().reset_session();
                     }
                 }
@@ -635,14 +635,6 @@ impl App {
         }
 
         if self.view == View::Editor {
-            if self.editor.mode == EditorMode::Play
-                && self
-                    .save_state
-                    .as_mut()
-                    .is_some_and(|state| state.take_restart_request())
-            {
-                self.restart_play_in_place(true);
-            }
             if self.editor.mode == EditorMode::Play && self.last_mode == EditorMode::Editor {
                 self.game_state.lock().unwrap().reset_session();
                 self.play_mode_hint_started = Some(Instant::now());
@@ -960,7 +952,7 @@ impl App {
         }
     }
 
-    fn restart_play_in_place(&mut self, reset_saved_values: bool) {
+    fn restart_play_in_place(&mut self) {
         self.runtime_scene_analysis.stop();
         self.stop_scripting();
         self.physics_clock.reset();
@@ -981,17 +973,8 @@ impl App {
         if let Some(authored) = self.saved_editor_actors.as_ref() {
             self.world.actors = authored.clone();
         }
-        if reset_saved_values {
-            if let Some(state) = self.save_state.as_mut() {
-                if let Err(error) = state.wipe() {
-                    self.editor.append_output(&format!(
-                        "[ERROR] [Game restart] Save reset failed: {error}\n"
-                    ));
-                    return;
-                }
-            }
-            self.editor.append_output("[Game restart] Saved values reset; field identities preserved. Restoring authored runtime.\n");
-        }
+        self.editor
+            .append_output("[Game restart] Reloading runtime without modifying saved data.\n");
         let configured_camera = self
             .project_manager
             .current_project

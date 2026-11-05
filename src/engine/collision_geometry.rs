@@ -830,6 +830,7 @@ fn sweep_character_wall_pass(
     obstacle_position: Vec3,
     obstacle_min: Vec3,
     obstacle_max: Vec3,
+    max_walkable_slope_degrees: f32,
 ) -> Option<(Vec3, Contact)> {
     let mesh = obstacle?;
     if !mesh
@@ -874,7 +875,9 @@ fn sweep_character_wall_pass(
                     continue;
                 }
                 let plane = plane / plane_length;
-                if plane.y.abs() >= 0.65 {
+                if crate::character::collision::contact_is_walkable(plane, max_walkable_slope_degrees, false)
+                    || plane.y < -0.65
+                {
                     continue;
                 }
                 let tri_min = points[0].min(points[1]).min(points[2]);
@@ -928,6 +931,7 @@ pub(crate) fn sweep_character_wall(
     obstacle_position: Vec3,
     obstacle_min: Vec3,
     obstacle_max: Vec3,
+    max_walkable_slope_degrees: f32,
 ) -> Option<(Vec3, Contact)> {
     let mut destination = to;
     let mut last = None;
@@ -940,7 +944,7 @@ pub(crate) fn sweep_character_wall(
             obstacle_position,
             obstacle_min,
             obstacle_max,
-        ) else {
+         max_walkable_slope_degrees) else {
             break;
         };
         last = Some(contact);
@@ -962,6 +966,7 @@ pub(crate) fn walkable_mesh_support(
     to: Vec3,
     obstacle: Option<&ColliderInstance>,
     obstacle_position: Vec3,
+    max_walkable_slope_degrees: f32,
 ) -> Option<f32> {
     let mesh = obstacle?;
     if !from.is_finite() || !to.is_finite() {
@@ -981,7 +986,7 @@ pub(crate) fn walkable_mesh_support(
         for tri in vertices.iter() {
             let [a, b, c] = tri.map(|v| q * (vec(v) * mesh.scale) + obstacle_position);
             let normal = (b - a).cross(c - a).normalize_or_zero();
-            if normal.y < 0.70 {
+            if !crate::character::collision::contact_is_walkable(normal, max_walkable_slope_degrees, false) {
                 continue;
             }
             let lo = a.min(b).min(c);
@@ -2166,7 +2171,7 @@ mod swept_wall_regressions {
             Vec3::ZERO,
             Vec3::new(-0.001, -1.0, -3.0),
             Vec3::new(0.001, 3.0, 3.0),
-        )
+         45.0)
         .expect("wall should intercept swept Character");
         assert!(
             stopped.x <= -0.3999,
@@ -2273,5 +2278,32 @@ mod spherical_collision_regressions {
             resolved_actor_collision_mode(&actor),
             CollisionMode::Disabled
         );
+    }
+}
+
+#[cfg(test)]
+mod configurable_mesh_slope_tests {
+    use super::*;
+
+    #[test]
+    fn imported_triangle_support_honors_project_slope_limit() {
+        let player = ColliderInstance {
+            shapes: Arc::new(vec![CollisionShape::Box {
+                min: [-0.2, 0.0, -0.2],
+                max: [0.2, 1.8, 0.2],
+            }]),
+            rotation: Vec3::ZERO,
+            scale: Vec3::ONE,
+        };
+        let ramp = ColliderInstance {
+            shapes: Arc::new(vec![CollisionShape::Triangles {
+                vertices: vec![[[0.0, 0.0, 0.0], [0.0, 0.0, 2.0], [2.0, 1.1547, 0.0]]],
+            }]),
+            rotation: Vec3::ZERO,
+            scale: Vec3::ONE,
+        };
+        let at = Vec3::new(0.5, 0.25, 0.5);
+        assert!(walkable_mesh_support(&player, at + Vec3::Y * 0.10, at, Some(&ramp), Vec3::ZERO, 15.0).is_none());
+        assert!(walkable_mesh_support(&player, at + Vec3::Y * 0.10, at, Some(&ramp), Vec3::ZERO, 40.0).is_some());
     }
 }

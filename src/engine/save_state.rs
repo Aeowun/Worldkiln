@@ -438,6 +438,9 @@ fn previous_saves_in_root(project_path: &Path, root: &Path) -> io::Result<Vec<Pr
 }
 
 pub fn save_data_root() -> PathBuf {
+    if let Some(root) = std::env::var_os("WORLDKILN_RUNTIME_SAVE_ROOT") {
+        return PathBuf::from(root);
+    }
     #[cfg(target_os = "windows")]
     if let Some(local_app_data) = std::env::var_os("LOCALAPPDATA") {
         return PathBuf::from(local_app_data)

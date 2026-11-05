@@ -318,7 +318,7 @@ impl PhysicsWorld {
                     velocity,
                     mass,
                     &solid_actor_keys,
-                );
+                 terrain.map_or(45.0, |world| world.max_walkable_slope_degrees));
                 if let Some(ch) = characters.get_character_for_entity_mut(entity) {
                     let previous = ch.transform.position;
                     ch.transform.position = position;
@@ -331,7 +331,7 @@ impl PhysicsWorld {
                             self,
                             &mut touched,
                             previous,
-                        );
+                         terrain.map_or(45.0, |world| world.max_walkable_slope_degrees));
                         if let Some(world) = terrain {
                             if let Some((position, _)) = crate::character::collider::sweep_terrain(
                                 self,

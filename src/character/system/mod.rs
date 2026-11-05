@@ -568,7 +568,7 @@ impl CharacterSystem {
                     physics_world,
                     &mut character_contacted_cells,
                     previous_position,
-                );
+                 world.max_walkable_slope_degrees);
 
                 drop(static_span);
                 let dynamic_span = crate::engine::development_capture::operation(
@@ -582,7 +582,7 @@ impl CharacterSystem {
                     &mut character_contacted_cells,
                     previous_position,
                     was_grounded,
-                );
+                 world.max_walkable_slope_degrees);
 
                 drop(dynamic_span);
                 if character.movement.is_grounded {
@@ -605,13 +605,9 @@ impl CharacterSystem {
                     let descending = character.movement.velocity.y <= 0.0;
                     for contact in contacts {
                         let normal = contact.normal;
-                        if normal.y
-                            >= world
-                                .max_walkable_slope_degrees
-                                .clamp(0.0, 89.0)
-                                .to_radians()
-                                .cos()
-                            && descending
+                        if super::collision::contact_is_walkable(
+                            normal, world.max_walkable_slope_degrees, was_grounded,
+                        ) && descending
                         {
                             character.movement.is_grounded = true;
                             character.movement.velocity.y = 0.0;

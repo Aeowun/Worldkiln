@@ -6,11 +6,12 @@ pub mod script_editor_documents;
 pub mod script_editor_files;
 pub mod script_editor_highlighting;
 pub mod script_editor_problems;
+pub mod script_editor_search;
 pub mod script_editor_ui;
 
 pub use script_editor_documents::ScriptDocument;
 pub use script_editor_problems::{ProjectProblem, ProjectProblemKind};
-pub use script_editor_ui::SearchResult;
+pub use script_editor_search::{SearchResult, SearchScope};
 
 use crate::project::{IndexedModule, ProjectNodeId, ProjectScriptIndex, ScriptRoot, ScriptTree};
 use std::collections::HashMap;
@@ -44,6 +45,15 @@ pub struct ScriptEditor {
     pub search_query: String,
     pub show_search: bool,
     pub search_results: Vec<SearchResult>,
+    pub search_scope: SearchScope,
+    pub search_match_case: bool,
+    pub search_whole_word: bool,
+    pub search_replace: bool,
+    pub search_replacement: String,
+    pub search_active_index: Option<usize>,
+    pub search_focus_requested: bool,
+    pub search_selection_request: Option<(PathBuf, usize, usize)>,
+    pub search_undo_pending: Vec<(PathBuf, String, String)>,
 
     pub closing_path: Option<PathBuf>,
     pub deleting_path: Option<PathBuf>,
@@ -96,6 +106,15 @@ impl ScriptEditor {
             search_query: String::new(),
             show_search: false,
             search_results: Vec::new(),
+            search_scope: SearchScope::Script,
+            search_match_case: false,
+            search_whole_word: false,
+            search_replace: false,
+            search_replacement: String::new(),
+            search_active_index: None,
+            search_focus_requested: false,
+            search_selection_request: None,
+            search_undo_pending: Vec::new(),
 
             closing_path: None,
             deleting_path: None,
@@ -172,6 +191,15 @@ impl ScriptEditor {
         self.search_query.clear();
         self.show_search = false;
         self.search_results.clear();
+        self.search_scope = SearchScope::Script;
+        self.search_match_case = false;
+        self.search_whole_word = false;
+        self.search_replace = false;
+        self.search_replacement.clear();
+        self.search_active_index = None;
+        self.search_focus_requested = false;
+        self.search_selection_request = None;
+        self.search_undo_pending.clear();
         self.project_problems.clear();
 
         self.closing_path = None;
@@ -646,6 +674,7 @@ mod tests {
         editor.refresh_scripts(&Some(test_dir.clone()));
 
         editor.search_query = "hello".to_string();
+        editor.search_scope = SearchScope::Project;
         editor.perform_search();
 
         assert_eq!(editor.search_results.len(), 1);
@@ -753,12 +782,10 @@ mod tests {
         assert_eq!(editor.closing_path, Some(path.clone()));
         assert_eq!(editor.deleting_path, Some(path.clone()));
 
-        assert!(
-            editor
-                .output_log
-                .iter()
-                .any(|line| line.contains("Save failed"))
-        );
+        assert!(editor
+            .output_log
+            .iter()
+            .any(|line| line.contains("Save failed")));
 
         fs::remove_dir_all(&test_dir).ok();
     }
@@ -1150,36 +1177,28 @@ mod tests {
         let mut editor = ScriptEditor::new();
         editor.refresh_scripts(&Some(test_dir.clone()));
 
-        assert!(
-            editor
-                .indexed_module_path("scripts/Dungeon/TopDown.aeo")
-                .is_some()
-        );
+        assert!(editor
+            .indexed_module_path("scripts/Dungeon/TopDown.aeo")
+            .is_some());
 
-        assert!(
-            editor
-                .indexed_module_path("playerscripts/Controller/TopDown.aeo")
-                .is_some()
-        );
+        assert!(editor
+            .indexed_module_path("playerscripts/Controller/TopDown.aeo")
+            .is_some());
 
         editor.search_query = "shared_root_test".to_string();
         editor.perform_search();
 
         assert_eq!(editor.search_results.len(), 2);
 
-        assert!(
-            editor
-                .search_results
-                .iter()
-                .any(|result| result.path == scripts_path)
-        );
+        assert!(editor
+            .search_results
+            .iter()
+            .any(|result| result.path == scripts_path));
 
-        assert!(
-            editor
-                .search_results
-                .iter()
-                .any(|result| result.path == playerscripts_path)
-        );
+        assert!(editor
+            .search_results
+            .iter()
+            .any(|result| result.path == playerscripts_path));
 
         fs::remove_dir_all(&test_dir).ok();
     }
@@ -1275,9 +1294,7 @@ mod tests {
         let mut editor = ScriptEditor::new();
         editor.refresh_scripts(&Some(test_dir.clone()));
 
-        assert!(
-            editor.rename_script_with_bindings(&test_dir, old_path.clone(), "new", &mut world,)
-        );
+        assert!(editor.rename_script_with_bindings(&test_dir, old_path.clone(), "new", &mut world,));
 
         assert_eq!(world.script_bindings[0].script_path, "scripts/new.aeo");
 
@@ -1420,11 +1437,9 @@ mod tests {
             copy.dirty = true;
         }
 
-        assert!(
-            !editor.open_documents[&original_path]
-                .source
-                .contains("copy-only edit")
-        );
+        assert!(!editor.open_documents[&original_path]
+            .source
+            .contains("copy-only edit"));
 
         assert!(editor.open_documents[&original_path].dirty);
         assert!(editor.open_documents[&copy_path].dirty);

@@ -11,6 +11,7 @@ use crate::character::CharacterSystem;
 use crate::engine::attachment::AttachmentSystem;
 use crate::engine::audio::AudioSystem;
 use crate::engine::entity::EntityManager;
+use crate::engine::input::InputActions;
 use crate::engine::mouse::MouseController;
 use crate::engine::physics::{PhysicsClock, PhysicsWorld};
 use crate::engine::ui::RuntimeUi;
@@ -26,7 +27,8 @@ use super::platform::{DesktopRuntimeServices, GameLifecycleEvent, GameRuntimeSer
 
 fn report_standalone_error(message: &str) {
     eprintln!("{message}");
-    let root = std::env::var_os("LOCALAPPDATA")
+    let root = std::env::var_os("WORLDKILN_RUNTIME_SAVE_ROOT")
+        .or_else(|| std::env::var_os("LOCALAPPDATA"))
         .or_else(|| std::env::var_os("XDG_DATA_HOME"))
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir);
@@ -84,6 +86,7 @@ pub struct GameRuntime {
     pub authored_disabled_scripts: Vec<String>,
 
     pub mouse: MouseController,
+    pub input_actions: InputActions,
     pub keys_down: HashSet<KeyCode>,
     pub gameplay_mouse_buttons: u8,
     pub jump_requested: bool,
@@ -137,6 +140,7 @@ impl GameRuntime {
             authored_disabled_scripts: Vec::new(),
 
             mouse: MouseController::default(),
+            input_actions: InputActions::default(),
             keys_down: HashSet::new(),
             gameplay_mouse_buttons: 0,
             jump_requested: false,
@@ -645,6 +649,7 @@ impl GameRuntime {
         self.gameplay_camera = GameplayCamera::new();
         self.script_pending_events.clear();
         self.script_dynamic_properties.clear();
+        self.input_actions.focus_lost();
         self.game_state.lock().unwrap().reset_session();
         self.load_project(project_path);
     }
@@ -661,29 +666,6 @@ impl GameRuntime {
 
     pub fn update(&mut self, frame_time: f32) {
         if self.suspended {
-            return;
-        }
-        if self.save_state.as_mut().is_some_and(|state| state.take_restart_request()) {
-            if let Some(project_path) = self.project_path.clone() {
-                self.stop_scripting();
-                if let Some(state) = self.save_state.as_mut() {
-                    if let Err(error) = state.wipe() {
-                        report_standalone_error(&format!(
-                            "[ERROR] Game restart could not reset save data: {error}"
-                        ));
-                        return;
-                    }
-                }
-                self.audio_system.stop_all();
-                self.entity_manager.clear();
-                self.actor_system.clear();
-                self.character_system.clear();
-                self.world = World::new();
-                self.physics_world = PhysicsWorld::new();
-                self.physics_clock.reset();
-                self.gameplay_camera.spring_arm.reset();
-                self.load_project(project_path);
-            }
             return;
         }
         let frame_time = {
@@ -1241,5 +1223,6 @@ impl GameRuntime {
             }
         }
         self.jump_requested = false;
+        self.input_actions.finish_frame();
     }
 }

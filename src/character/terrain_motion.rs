@@ -30,14 +30,7 @@ impl TerrainContact {
     }
 
     pub fn is_walkable_at(self, angle: f32, previously_grounded: bool) -> bool {
-        let limit = (angle.clamp(0.0, 89.0)
-            + if previously_grounded && angle > 0.0 {
-                2.0
-            } else {
-                0.0
-            })
-        .min(89.0);
-        self.normal.y >= limit.to_radians().cos()
+        super::collision::contact_is_walkable(self.normal, angle, previously_grounded)
     }
 
     pub fn downhill(self) -> Vec3 {

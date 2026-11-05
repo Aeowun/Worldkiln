@@ -1647,11 +1647,25 @@ pub(crate) fn installer_launch_arguments(development_build: bool) -> Vec<&'stati
     }
 }
 
+fn is_development_build_artifact(executable: &Path) -> bool {
+    let Some(parent) = executable.parent() else {
+        return false;
+    };
+    let Some(configuration) = parent.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    (configuration.eq_ignore_ascii_case("release")
+        || configuration.eq_ignore_ascii_case("debug"))
+        && parent.parent().and_then(|dir| dir.file_name())
+            == Some(OsStr::new("target"))
+}
+
 pub(crate) fn is_installer_self_cleanup_eligible(current_exe: &Path, install_dir: &Path) -> bool {
     let canonical_exe = install_dir.join(CANONICAL_EXECUTABLE_NAME);
 
     is_installer_executable(current_exe)
         && current_exe.is_file()
+        && !is_development_build_artifact(current_exe)
         && !paths_refer_to_same_file(current_exe, &canonical_exe)
 }
 
@@ -2428,6 +2442,27 @@ mod version_tests {
         );
 
         let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn development_installer_build_artifacts_are_not_self_deleted() {
+        let root = std::env::temp_dir().join(format!(
+            "Worldkiln_Installer_Build_Artifact_{}",
+            std::process::id()
+        ));
+        let install_dir = root.join("installed");
+        for configuration in ["release", "debug"] {
+            let build_dir = root.join("target").join(configuration);
+            std::fs::create_dir_all(&build_dir).unwrap();
+            let installer = build_dir.join("Installer.exe");
+            std::fs::write(&installer, b"build artifact").unwrap();
+            assert!(is_development_build_artifact(&installer));
+            assert!(
+                !is_installer_self_cleanup_eligible(&installer, &install_dir),
+                "installer build artifact must survive the installation"
+            );
+        }
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

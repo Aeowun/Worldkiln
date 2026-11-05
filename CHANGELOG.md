@@ -31,6 +31,16 @@ Development history for Worldkiln and AeoScript.
 - Fixed Actors taking incorrect routes, missing turns, or continuing to move after reaching their destination.
 - Fixed unwanted dark shadows appearing on Cells.
 - Improved point-light shadows for more consistent lighting.
+- Added Find & Replace to the AeoScript Editor, with current-script and project-wide `.aeo` search, match navigation, and replacement controls.
+- Expanded the input-action foundation with multiple bindings, analog deadzones, and improved keyboard and mouse focus handling.
+- Improved keyboard and mouse input release handling when interface controls consume events.
+
+### Runtime and AeoScript
+- Improved consistency between `game.restart()` and `save.restart()`, separating gameplay restart from saved-data reset.
+- Improved runtime save-root configuration for isolated game environments.
+
+### Installation
+- Fixed development-built installers being eligible for executable self-cleanup during installation.
 
 ### Standalone Game Improvements
 

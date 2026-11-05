@@ -1217,7 +1217,10 @@ pub fn call_stdlib_function(
             }
             "restart" => {
                 match args {
-                    [] => _host.engine.request_game_restart()?,
+                    [] => {
+                        _host.engine.save_reset(None)?;
+                        _host.engine.save_commit()?;
+                    }
                     [key] => {
                         let key = key.as_string()?;
                         _host.engine.save_remove(key)?;

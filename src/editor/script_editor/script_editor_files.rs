@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Zachary Joubert / AEOWUN. All rights reserved.
 // Licensed under the AeoEngine Source-Available License.
 // See LICENSE in the repository root for the complete terms.
-use super::{ScriptDocument, ScriptEditor, SearchResult};
+use super::{ScriptDocument, ScriptEditor};
 use crate::project::{ProjectScriptIndex, ScriptRoot, ScriptTree};
 use crate::world::World;
 use std::path::{Path, PathBuf};
@@ -102,17 +102,21 @@ impl ScriptEditor {
     pub fn open_file(&mut self, path: PathBuf) {
         if self.open_documents.contains_key(&path) {
             self.active_document = Some(path);
+            if self.show_search && self.search_scope == super::SearchScope::Script {
+                self.perform_search();
+            }
             return;
         }
 
         match std::fs::read_to_string(&path) {
             Ok(source) => {
                 let document = ScriptDocument::new(path.clone(), source);
-
                 self.open_documents.insert(path.clone(), document);
                 self.active_document = Some(path);
+                if self.show_search && self.search_scope == super::SearchScope::Script {
+                    self.perform_search();
+                }
             }
-
             Err(error) => {
                 self.output_log
                     .push(format!("Failed to open {:?}: {}", path, error));
@@ -665,38 +669,6 @@ impl ScriptEditor {
         }
 
         self.closing_path = None;
-    }
-
-    pub fn perform_search(&mut self) {
-        self.search_results.clear();
-
-        let query = self.search_query.trim();
-
-        if query.is_empty() {
-            return;
-        }
-
-        let paths = self.indexed_script_paths();
-
-        for path in paths {
-            let source = match self.open_documents.get(&path) {
-                Some(document) => document.source.clone(),
-                None => match std::fs::read_to_string(&path) {
-                    Ok(source) => source,
-                    Err(_) => continue,
-                },
-            };
-
-            for (index, line) in source.lines().enumerate() {
-                if line.contains(query) {
-                    self.search_results.push(SearchResult {
-                        path: path.clone(),
-                        line: index + 1,
-                        text: line.to_string(),
-                    });
-                }
-            }
-        }
     }
 }
 

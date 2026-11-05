@@ -1695,7 +1695,7 @@ impl PhysicsWorld {
                                 pos,
                                 min_e,
                                 max_e,
-                            )
+                             world.map_or(45.0, |world| world.max_walkable_slope_degrees))
                         {
                             if let Some(character) = cs.get_character_for_entity_mut(char_entity_id)
                             {
@@ -1715,7 +1715,7 @@ impl PhysicsWorld {
                                     self,
                                     &mut touched,
                                     previous,
-                                );
+                                 world.map_or(45.0, |world| world.max_walkable_slope_degrees));
                                 if let Some(world) = world {
                                     if let Some((position, _)) =
                                         crate::character::collider::sweep_terrain(
@@ -1728,7 +1728,7 @@ impl PhysicsWorld {
                                     {
                                         character.transform.position = position;
                                         crate::character::collision::resolve_static_voxel_collisions(
-                                            character,self,&mut touched,previous);
+                                            character,self,&mut touched,previous, world.max_walkable_slope_degrees);
                                     }
                                 }
                             }
@@ -1746,7 +1746,7 @@ impl PhysicsWorld {
                                         now,
                                         body,
                                         pos,
-                                    )
+                                     world.map_or(45.0, |world| world.max_walkable_slope_degrees))
                                 {
                                     if let Some(character) =
                                         cs.get_character_for_entity_mut(char_entity_id)
@@ -1831,15 +1831,29 @@ impl PhysicsWorld {
                                     .map_or(Vec3::ZERO, |p| p.velocity),
                                 inverse_mass: entity_inverse,
                             };
+                            let was_rising = character_motion.velocity.y > 0.0;
                             if resolve(&mut character_motion, &mut entity_motion, normal, depth) {
+                                if normal.y > 0.0
+                                    && !crate::character::collision::contact_is_walkable(
+                                        normal, world.map_or(45.0, |world| world.max_walkable_slope_degrees), false,
+                                    )
+                                    && !was_rising
+                                {
+                                    character_motion.velocity.y = character_motion.velocity.y.min(0.0);
+                                }
                                 if char_inverse > 0.0 {
                                     if let Some(character) =
                                         cs.get_character_for_entity_mut(char_entity_id)
                                     {
                                         let previous = character.transform.position;
-                                        character.transform.position = character_motion.position;
+                                        character.transform.position = crate::character::collision::reject_steep_uphill_motion(
+                                            motion_origin,
+                                            character_motion.position,
+                                            normal,
+                                            world.map_or(45.0, |world| world.max_walkable_slope_degrees),
+                                        );
                                         let mut touched = HashSet::new();
-                                        crate::character::collision::resolve_static_voxel_collisions(character,self,&mut touched,previous);
+                                        crate::character::collision::resolve_static_voxel_collisions(character,self,&mut touched,previous, world.map_or(45.0, |world| world.max_walkable_slope_degrees));
                                         if let Some(world) = world {
                                             if let Some((position, _)) =
                                                 crate::character::collider::sweep_terrain(
@@ -1851,11 +1865,15 @@ impl PhysicsWorld {
                                                 )
                                             {
                                                 character.transform.position = position;
-                                                crate::character::collision::resolve_static_voxel_collisions(character,self,&mut touched,previous);
+                                                crate::character::collision::resolve_static_voxel_collisions(character,self,&mut touched,previous, world.max_walkable_slope_degrees);
                                             }
                                         }
                                         character.movement.velocity = character_motion.velocity;
-                                        if normal.y > 0.5 {
+                                        if crate::character::collision::contact_is_walkable(
+                                            normal,
+                                            world.map_or(45.0, |world| world.max_walkable_slope_degrees),
+                                            false,
+                                        ) {
                                             character.movement.is_grounded = true;
                                         }
                                     }
@@ -1916,7 +1934,7 @@ impl PhysicsWorld {
                                     now,
                                     body,
                                     pos,
-                                )
+                                 world.map_or(45.0, |world| world.max_walkable_slope_degrees))
                             {
                                 if let Some(character) =
                                     cs.get_character_for_entity_mut(char_entity_id)

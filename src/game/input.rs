@@ -45,6 +45,19 @@ pub enum GameInputEvent {
         dx: f64,
         dy: f64,
     },
+    GamepadButton {
+        device: u32,
+        button: u8,
+        pressed: bool,
+    },
+    GamepadAxis {
+        device: u32,
+        axis: u8,
+        value: f32,
+    },
+    GamepadDisconnected {
+        device: u32,
+    },
 }
 
 fn accept_mouse_press(pressed: bool, already_owned: bool, captured: bool) -> bool {
@@ -63,6 +76,7 @@ impl GameRuntime {
                 repeat,
                 captured_by_ui,
             } => {
+                self.input_actions.set_key(code, pressed, captured_by_ui);
                 if pressed {
                     if captured_by_ui {
                         return;
@@ -94,6 +108,7 @@ impl GameRuntime {
                 }
             }
             GameInputEvent::FocusLost => {
+                self.input_actions.focus_lost();
                 let held_keys: Vec<_> = self.keys_down.drain().collect();
                 if self.script_scene.is_some() {
                     for key in held_keys {
@@ -124,6 +139,7 @@ impl GameRuntime {
                 captured_by_ui,
             } => {
                 let (bit, name) = button.state();
+                self.input_actions.set_mouse_button(bit, pressed, captured_by_ui);
                 let was_owned = self.gameplay_mouse_buttons & bit != 0;
                 if accept_mouse_press(pressed, was_owned, captured_by_ui) {
                     self.gameplay_mouse_buttons |= bit;
@@ -148,6 +164,15 @@ impl GameRuntime {
                     self.orbit_delta[0] += dx as f32;
                     self.orbit_delta[1] += dy as f32;
                 }
+            }
+            GameInputEvent::GamepadButton { device, button, pressed } => {
+                self.input_actions.set_gamepad_button(device, button, pressed);
+            }
+            GameInputEvent::GamepadAxis { device, axis, value } => {
+                self.input_actions.set_gamepad_axis(device, axis, value);
+            }
+            GameInputEvent::GamepadDisconnected { device } => {
+                self.input_actions.disconnect_gamepad(device);
             }
         }
     }

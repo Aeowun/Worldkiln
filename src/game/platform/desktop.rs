@@ -492,3 +492,20 @@ fn draw_worldkiln_splash(ctx: &egui::Context, started: Instant) {
         }
     }
 }
+
+#[cfg(test)]
+mod focus_input_tests {
+    use super::*;
+
+    #[test]
+    fn focus_loss_is_forwarded_even_when_ui_consumes_the_event() {
+        assert!(should_forward_gameplay_input(
+            &WindowEvent::Focused(false),
+            true
+        ));
+        assert!(!should_forward_gameplay_input(
+            &WindowEvent::Focused(true),
+            true
+        ));
+    }
+}

@@ -90,6 +90,7 @@ pub(crate) fn resolve_active_static_cells(
     physics: &PhysicsWorld,
     touched: &mut HashSet<u64>,
     from: Vec3,
+    max_walkable_slope_degrees: f32,
 ) {
     if !character.collision_enabled || !character.collision_solid {
         return;
@@ -113,6 +114,7 @@ pub(crate) fn resolve_active_static_cells(
     let steps = (motion.length() / 0.1).ceil().clamp(1.0, 256.0) as usize;
     let increment = motion / steps as f32;
     let mut position = from;
+    let previously_grounded = character.movement.is_grounded;
     character.movement.is_grounded = false;
     for _ in 0..steps {
         let mut next = position + increment;
@@ -142,7 +144,7 @@ pub(crate) fn resolve_active_static_cells(
             character.movement.velocity -= normal * into;
             let slide = character.movement.slope_slide_velocity.dot(normal).min(0.0);
             character.movement.slope_slide_velocity -= normal * slide;
-            if normal.y > 0.5 {
+            if super::collision::contact_is_walkable(normal, max_walkable_slope_degrees, previously_grounded) {
                 character.movement.is_grounded = true;
             }
         }
@@ -150,11 +152,11 @@ pub(crate) fn resolve_active_static_cells(
     }
     character.transform.position = position;
     if character.movement.velocity.y <= 0.0 {
-        for f in faces.iter().filter(|f| f.normal.y > 0.5) {
+        for f in faces.iter().filter(|f| super::collision::contact_is_walkable(f.normal, max_walkable_slope_degrees, previously_grounded)) {
             let min = f.min - f.normal.max(Vec3::ZERO);
             let max = f.max - f.normal.min(Vec3::ZERO);
             if collision_geometry::against_box(&body, position - Vec3::Y * 0.002, min, max)
-                .is_some_and(|h| h.normal.y > 0.5)
+                .is_some_and(|h| super::collision::contact_is_walkable(h.normal, max_walkable_slope_degrees, previously_grounded))
             {
                 character.movement.is_grounded = true;
                 touched.insert(f.cell_id);
@@ -199,6 +201,7 @@ pub(crate) fn resolve_active_dynamic_cells(
     physics: &mut PhysicsWorld,
     touched: &mut HashSet<u64>,
     from: Vec3,
+    max_walkable_slope_degrees: f32,
 ) {
     let Some(body) = c.contact_collider() else {
         return;
@@ -260,12 +263,19 @@ pub(crate) fn resolve_active_dynamic_cells(
                     0.0
                 },
             };
+            let was_rising = c.movement.velocity.y > 0.0;
             if resolve_with_friction(&mut mover, &mut cell, h.normal, h.depth, b.friction) {
                 at = mover.position;
                 c.movement.velocity = mover.velocity;
+                if h.normal.y > 0.0
+                    && !super::collision::contact_is_walkable(h.normal, max_walkable_slope_degrees, false)
+                    && !was_rising
+                {
+                    c.movement.velocity.y = c.movement.velocity.y.min(0.0);
+                }
                 b.position = cell.position;
                 b.velocity = cell.velocity;
-                if h.normal.y > 0.5 {
+                if super::collision::contact_is_walkable(h.normal, max_walkable_slope_degrees, c.movement.is_grounded) {
                     c.movement.is_grounded = true;
                 }
                 b.wake();

@@ -10,6 +10,35 @@ use std::collections::{HashMap, HashSet};
 
 const CHARACTER_BROADPHASE_CELL_SIZE: f32 = 1.0;
 
+pub(crate) fn contact_is_walkable(normal: Vec3, limit_degrees: f32, previously_grounded: bool) -> bool {
+    if !normal.is_finite() || normal.length_squared() <= 1e-10 {
+        return false;
+    }
+    let limit = (limit_degrees.clamp(0.0, 89.0)
+        + if previously_grounded && limit_degrees > 0.0 { 2.0 } else { 0.0 })
+        .min(89.0);
+    normal.normalize().y >= limit.to_radians().cos()
+}
+
+pub(crate) fn reject_steep_uphill_motion(
+    previous: Vec3, proposed: Vec3, normal: Vec3, limit_degrees: f32,
+) -> Vec3 {
+    if normal.y <= 0.0 || contact_is_walkable(normal, limit_degrees, false) {
+        return proposed;
+    }
+    let wall = Vec3::new(normal.x, 0.0, normal.z).normalize_or_zero();
+    let into = (proposed - previous).dot(wall).min(0.0);
+    if into < 0.0 {
+        let mut restricted = proposed - wall * into;
+        if proposed.y > previous.y {
+            restricted.y = previous.y;
+        }
+        restricted
+    } else {
+        proposed
+    }
+}
+
 fn cell_support_contact(
     previous_bottom: f32,
     current_bottom: f32,
@@ -123,6 +152,7 @@ pub fn resolve_static_voxel_collisions(
     physics_world: &PhysicsWorld,
     contacted_cells: &mut HashSet<u64>,
     previous_position: Vec3,
+    max_walkable_slope_degrees: f32,
 ) {
     if !character.collision_enabled || !character.collision_solid {
         return;
@@ -133,6 +163,7 @@ pub fn resolve_static_voxel_collisions(
             physics_world,
             contacted_cells,
             previous_position,
+            max_walkable_slope_degrees,
         );
         return;
     }
@@ -156,7 +187,7 @@ pub fn resolve_static_voxel_collisions(
     };
     let mut supported_top: Option<f32> = None;
     for face in &faces {
-        if face.normal.y > 0.5
+        if contact_is_walkable(face.normal, max_walkable_slope_degrees, previously_grounded)
             && overlaps_xz(face.min, face.max, foot)
             && cell_support_contact(
                 previous_position.y,
@@ -283,6 +314,7 @@ pub fn resolve_dynamic_body_collisions(
     contacted_cells: &mut HashSet<u64>,
     previous_position: Vec3,
     previously_grounded: bool,
+    max_walkable_slope_degrees: f32,
 ) {
     if !character.collision_enabled || !character.collision_solid {
         return;
@@ -293,6 +325,7 @@ pub fn resolve_dynamic_body_collisions(
             physics_world,
             contacted_cells,
             previous_position,
+            max_walkable_slope_degrees,
         );
         return;
     }
@@ -556,14 +589,14 @@ fn resolve_character_pairs(
             c.transform.position += correction;
             if let Some((physics, world)) = constraints {
                 let mut touched = HashSet::new();
-                resolve_static_voxel_collisions(c, physics, &mut touched, previous);
+                resolve_static_voxel_collisions(c, physics, &mut touched, previous, world.max_walkable_slope_degrees);
                 let from = previous;
                 let to = c.transform.position;
                 if let Some((position, _)) =
                     super::collider::sweep_terrain(physics, world, c, from, to)
                 {
                     c.transform.position = position;
-                    resolve_static_voxel_collisions(c, physics, &mut touched, from);
+                    resolve_static_voxel_collisions(c, physics, &mut touched, from, world.max_walkable_slope_degrees);
                 }
             }
         }
@@ -734,7 +767,7 @@ mod cell_collision_stability_tests {
         actor.collision.radius = 0.65;
         actor.movement.velocity = Vec3::ZERO;
         actor.transform.position = previous;
-        resolve_static_voxel_collisions(&mut actor, &physics, &mut HashSet::new(), previous);
+        resolve_static_voxel_collisions(&mut actor, &physics, &mut HashSet::new(), previous, 45.0);
         assert!(
             (actor.transform.position.x - previous.x).abs() < 0.001
                 && (actor.transform.position.z - previous.z).abs() < 0.001,
@@ -750,7 +783,7 @@ mod cell_collision_stability_tests {
         actor.movement.velocity = Vec3::new(0.0, -1.0, 0.0);
         actor.transform.position = Vec3::new(2.45, 0.73, 0.5);
         let mut touched = HashSet::new();
-        resolve_static_voxel_collisions(&mut actor, &physics, &mut touched, previous);
+        resolve_static_voxel_collisions(&mut actor, &physics, &mut touched, previous, 45.0);
         assert!(
             (actor.transform.position.y - 1.0).abs() < 0.001,
             "sunk dock landing should be resolved upward, not toward edges"
@@ -771,7 +804,7 @@ mod cell_collision_stability_tests {
         let mut actor = Character::new(52, previous);
         actor.movement.velocity = Vec3::ZERO;
         actor.transform.position = previous;
-        resolve_static_voxel_collisions(&mut actor, &physics, &mut HashSet::new(), previous);
+        resolve_static_voxel_collisions(&mut actor, &physics, &mut HashSet::new(), previous, 45.0);
         assert!(
             (actor.transform.position.x - previous.x).abs() < 0.001,
             "ambiguous embedded contact must not cascade across dock Cells"
@@ -791,7 +824,7 @@ mod cell_collision_stability_tests {
         character.movement.velocity.y = -1.0;
         character.transform.position = Vec3::new(0.5, 0.89, 0.5);
         let mut contacts = HashSet::new();
-        resolve_static_voxel_collisions(&mut character, &physics, &mut contacts, previous);
+        resolve_static_voxel_collisions(&mut character, &physics, &mut contacts, previous, 45.0);
         assert!((character.transform.position.y - 1.0).abs() < 0.0001);
         assert!((character.transform.position.x - 0.5).abs() < 0.0001);
         assert!((character.transform.position.z - 0.5).abs() < 0.0001);
@@ -811,7 +844,7 @@ mod cell_collision_stability_tests {
         character.movement.velocity = Vec3::new(2.0, -0.3, 0.0);
         character.transform.position = Vec3::new(1.08, 0.93, 0.5);
         let mut contacts = HashSet::new();
-        resolve_static_voxel_collisions(&mut character, &physics, &mut contacts, previous);
+        resolve_static_voxel_collisions(&mut character, &physics, &mut contacts, previous, 45.0);
         assert!((character.transform.position.x - 1.08).abs() < 0.0001);
         assert!((character.transform.position.y - 1.0).abs() < 0.0001);
         assert!(character.movement.is_grounded);
@@ -825,7 +858,7 @@ mod cell_collision_stability_tests {
         character.movement.velocity = Vec3::new(4.0, 0.0, 0.0);
         character.transform.position.x = -0.2;
         let mut contacts = HashSet::new();
-        resolve_static_voxel_collisions(&mut character, &physics, &mut contacts, previous);
+        resolve_static_voxel_collisions(&mut character, &physics, &mut contacts, previous, 45.0);
         assert!(character.transform.position.x <= -0.399);
         assert!((character.transform.position.y - 0.1).abs() < 0.0001);
         assert!(!character.movement.is_grounded);
@@ -842,7 +875,7 @@ mod cell_collision_stability_tests {
         let previous = Vec3::new(0.5, 2.0 - height - 0.2, 0.5);
         character.transform.position = previous + Vec3::new(0.0, 0.4, 0.0);
         character.movement.velocity.y = 3.0;
-        resolve_static_voxel_collisions(&mut character, &physics, &mut HashSet::new(), previous);
+        resolve_static_voxel_collisions(&mut character, &physics, &mut HashSet::new(), previous, 45.0);
         assert!((character.transform.position.y - (2.0 - height)).abs() < 0.0001);
         assert_eq!(character.movement.velocity.y, 0.0);
         assert!(!character.movement.is_grounded);
@@ -862,7 +895,7 @@ mod cell_collision_stability_tests {
         character.movement.velocity.y = -0.4;
         character.transform.position.y = 0.99;
         let mut touched = HashSet::new();
-        resolve_dynamic_body_collisions(&mut character, &mut physics, &mut touched, previous, true);
+        resolve_dynamic_body_collisions(&mut character, &mut physics, &mut touched, previous, true, 45.0);
         let platform = &physics.bodies[0];
         assert!(
             (character.transform.position.y - platform.max_corner().y).abs() < 0.005,
@@ -901,7 +934,7 @@ mod cell_collision_stability_tests {
             &mut HashSet::new(),
             previous,
             true,
-        );
+         45.0);
         let first_top = physics.bodies[0].max_corner().y;
         assert!(
             (character.transform.position.y - first_top).abs() < 0.005,
@@ -919,7 +952,7 @@ mod cell_collision_stability_tests {
             &mut HashSet::new(),
             previous,
             true,
-        );
+         45.0);
         assert!(
             (character.transform.position.y - physics.bodies[0].max_corner().y).abs() < 0.005,
             "Character must rest on the platform after relative motion"
@@ -948,7 +981,7 @@ mod cell_collision_stability_tests {
             &mut HashSet::new(),
             previous,
             false,
-        );
+         45.0);
         let cell = &physics.bodies[0];
         assert!(
             character.transform.position.x + character.collision.radius
@@ -961,5 +994,39 @@ mod cell_collision_stability_tests {
             "impact must transfer forward momentum"
         );
         assert!(!character.movement.is_grounded);
+    }
+}
+
+#[cfg(test)]
+mod slope_limit_contact_tests {
+    use super::contact_is_walkable;
+    use glam::Vec3;
+
+    #[test]
+    fn configured_slope_controls_all_contact_normals() {
+        let ramp = Vec3::new(-0.5, 0.8660254, 0.0);
+        assert!(!contact_is_walkable(ramp, 15.0, false));
+        assert!(contact_is_walkable(ramp, 35.0, false));
+        assert!(contact_is_walkable(Vec3::Y, 0.0, false));
+        assert!(!contact_is_walkable(Vec3::X, 89.0, false));
+        assert!(!contact_is_walkable(Vec3::NEG_Y, 89.0, false));
+    }
+
+    #[test]
+    fn grounded_hysteresis_matches_terrain_behavior() {
+        let contact = Vec3::new(-0.7071068, 0.7071068, 0.0);
+        assert!(!contact_is_walkable(contact, 44.0, false));
+        assert!(contact_is_walkable(contact, 44.0, true));
+    }
+
+    #[test]
+    fn unwalkable_slope_cannot_produce_uphill_travel() {
+        let normal = Vec3::new(-0.8660254, 0.5, 0.0);
+        let from = Vec3::new(0.0, 0.0, 0.0);
+        let intended = Vec3::new(2.0, 1.0, 0.0);
+        let blocked = super::reject_steep_uphill_motion(from, intended, normal, 20.0);
+        assert!(blocked.x.abs() < 0.001);
+        assert!(blocked.y.abs() < 0.001);
+        assert_eq!(super::reject_steep_uphill_motion(from, intended, normal, 70.0), intended);
     }
 }

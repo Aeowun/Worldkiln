@@ -2286,16 +2286,6 @@ impl Editor {
         ui.separator();
         ui.heading("CHARACTER MOVEMENT");
         ui.horizontal(|ui| {
-            ui.label("Walk Speed");
-            ui.label(format!("{:.1} studs/s", world.character_walk_speed));
-        });
-        if ui
-            .add(egui::Slider::new(&mut world.character_walk_speed, 0.0..=20.0).step_by(0.1))
-            .changed()
-        {
-            self.needs_save = true;
-        }
-        ui.horizontal(|ui| {
             ui.label("Maximum Walkable Slope");
             ui.label(format!("{:.0}°", world.max_walkable_slope_degrees));
         });
