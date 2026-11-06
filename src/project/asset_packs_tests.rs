@@ -4,6 +4,32 @@
 // See LICENSE in the repository root for the complete terms.
 use super::*;
 #[test]
+fn legacy_engine_release_packs_are_excluded() {
+    let fixture = Fixture::new();
+    let (mut supported, _) = pack(&fixture);
+    supported.tag = "asset-packs-v1.8.0".into();
+    let mut legacy = supported.clone();
+    legacy.id = "legacy-starter-pack".into();
+    legacy.asset_id = 9999;
+    legacy.tag = "win11-v0.8.7".into();
+
+    assert_eq!(api_for_pack(&legacy), ASSET_API);
+    assert!(Catalog {
+        schema: 1,
+        packs: vec![legacy.clone()],
+    }
+    .validate()
+    .is_err());
+    let bytes = serde_json::to_vec(&Catalog {
+        schema: 1,
+        packs: vec![legacy, supported.clone()],
+    })
+    .unwrap();
+    let filtered = Catalog::parse(&bytes).unwrap();
+    assert_eq!(filtered.packs.len(), 1);
+    assert_eq!(filtered.packs[0].id, supported.id);
+}
+#[test]
 fn catalogue_blocking_response_reads_without_tokio_runtime() {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
@@ -146,7 +172,7 @@ fn pack(f: &Fixture) -> (Pack, PathBuf) {
             max_schema: 1,
             min_engine_schema: 1,
             max_engine_schema: 1,
-            tag: "assets-v1".into(),
+            tag: "asset-packs-v1.0.0".into(),
             asset_id: 42,
             asset_name: "BasicTextures.zip".into(),
             bytes,

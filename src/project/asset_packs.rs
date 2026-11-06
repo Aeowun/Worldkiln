@@ -11,14 +11,9 @@ use std::{
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
 };
-const API: &str = "https://api.github.com/repos/Aeowun/Worldkiln";
 const ASSET_API: &str = "https://api.github.com/repos/Aeowun/Worldkiln-AssetPacks";
-fn api_for_pack(p: &Pack) -> &'static str {
-    if p.tag.starts_with("asset-packs-v") {
-        ASSET_API
-    } else {
-        API
-    }
+fn api_for_pack(_p: &Pack) -> &'static str {
+    ASSET_API
 }
 const MAX_CATALOG: u64 = 8 * 1024 * 1024;
 const MAX_ARCHIVE: u64 = 8 * 1024 * 1024 * 1024;
@@ -180,7 +175,8 @@ impl Catalog {
         if bytes.len() as u64 > MAX_CATALOG {
             return Err("Asset catalog exceeds limit".into());
         }
-        let value: Self = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+        let mut value: Self = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+        value.packs.retain(|p| p.tag.starts_with("asset-packs-v"));
         value.validate()?;
         Ok(value)
     }
@@ -199,6 +195,7 @@ impl Catalog {
             }
             if !safe_component(&p.id)
                 || !safe_version(&p.version)
+                || !p.tag.starts_with("asset-packs-v")
                 || !ids.insert(&p.id)
                 || !revisions.insert(p.asset_id)
                 || p.asset_id == 0
@@ -501,7 +498,7 @@ pub fn fetch_catalog(root: &Path) -> Result<Catalog, String> {
     let previous = cached_catalog(root).ok();
     let mut catalogues = Vec::new();
     let mut failures = Vec::new();
-    for api in [API, ASSET_API] {
+    for api in [ASSET_API] {
         match fetch_repo_catalog(&c, api) {
             Ok(catalog) => catalogues.push(catalog),
             Err(error) => {
@@ -864,6 +861,9 @@ pub fn download_install(
 ) -> Result<(), String> {
     if verify_installed_cache(root, &p.reference()).is_ok() {
         return Ok(());
+    }
+    if !p.tag.starts_with("asset-packs-v") {
+        return Err("Asset pack is not hosted in Worldkiln-AssetPacks".into());
     }
     let c = client()?;
     let api = api_for_pack(p);
