@@ -120,6 +120,6 @@ For source details and current development, visit the [Worldkiln GitHub reposito
 
 Report problems through [AEOWUN Support](https://aeowun.com/support/).
 
-Worldkiln is distributed under the [Worldkiln Source-Available License](LICENSE). This repository contains public releases and documentation.
+Worldkiln's original source code is licensed under the [Apache License, Version 2.0](LICENSE). Third-party components and bundled assets remain subject to their respective licenses. This repository contains public releases and documentation.
 
 Features marked **BETA** are under active development.

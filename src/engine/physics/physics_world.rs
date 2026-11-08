@@ -1,7 +1,6 @@
 // Worldkiln
-// Copyright (c) 2026 Zachary Joubert / AEOWUN. All rights reserved.
-// Licensed under the AeoEngine Source-Available License.
-// See LICENSE in the repository root for the complete terms.
+// Copyright (c) 2026 Zachary Joubert / AEOWUN
+// SPDX-License-Identifier: Apache-2.0
 use super::anchored_surface::{AnchoredCollider, AnchoredFace, build_anchored_colliders};
 use super::physics_body::{CollisionRecord, PhysicsBody, PhysicsBodyId, PhysicsIdGenerator};
 use crate::world::{CellType, ChunkCoord, World, WorldCoord};

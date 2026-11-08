@@ -1,415 +1,202 @@
-WORLDKILN SOURCE-AVAILABLE LICENSE
 
-Copyright © 2026 Zachary Joubert / AEOWUN. All rights reserved.
-
-This license governs Worldkiln, AeoScript, their source code, compiled binaries, development tools, runtime components, documentation distributed with the Software, and other original software components owned by Zachary Joubert / AEOWUN.
-
-Worldkiln is source-available software. It is not open-source software.
-
-Permission is granted to obtain, download, view, study, compile, execute, and use an unmodified copy of the Software, subject to the terms of this License.
-
-1. Definitions
-
-For purposes of this License:
-
-"Software" means Worldkiln, AeoScript, their source code, editor, runtime, executables, libraries, tools, internal components, and other AEOWUN-owned software distributed as part of Worldkiln.
-
-"AEOWUN Assets" means textures, models, audio, graphics, example content, sample projects, scripts, templates, demonstrations, characters, animations, or other creative materials supplied by AEOWUN with Worldkiln or through an official AEOWUN distribution.
-
-"User Content" means original code, artwork, textures, models, audio, music, animations, scripts, data, characters, worlds, levels, interfaces, writing, and other materials supplied or created by a user and not owned by AEOWUN.
-
-"User Project" means a game, application, simulation, experience, or other original project created using Worldkiln.
-
-"Built Project" means a User Project compiled, packaged, exported, or otherwise prepared for execution or distribution using an unmodified copy of Worldkiln.
-
-2. Permission to Use Worldkiln
-
-Subject to this License, permission is granted to:
-
-  - download the Software;
-  - execute the Software;
-  - compile an unmodified copy of the Software;
-  - inspect and study the source code;
-  - use the Software for personal purposes;
-  - use the Software for educational purposes;
-  - evaluate and test the Software;
-  - experiment with the Software;
-  - develop original User Projects;
-  - create Built Projects using the Software; and
-  - distribute qualifying Built Projects as permitted by this License.
-
-Access to the Software without charge does not transfer ownership of the Software or create any rights beyond those expressly granted by this License.
-
-3. No Modification of Worldkiln or AeoScript
-
-Except with prior written permission from the copyright holder, the Software may not be modified, altered, adapted, translated, patched, forked, rewritten, reverse-engineered into a derivative implementation, or used to create a derivative version of Worldkiln or AeoScript.
-
-Prohibited modifications include, without limitation:
-
-  - modified Worldkiln source code;
-  - modified AeoScript implementation source code;
-  - modified Worldkiln binaries;
-  - modified AeoScript binaries or runtime components;
-  - forks;
-  - ports;
-  - derivative engine versions;
-  - derivative scripting-language implementations based substantially upon the Software;
-  - patched distributions;
-  - renamed versions;
-  - rebranded versions;
-  - modified editor distributions;
-  - modified runtime distributions; and
-  - modified versions distributed under another product or project name.
-
-This section does not prohibit creating original User Content or writing ordinary AeoScript code intended to run inside a User Project.
-
-4. Source Code Availability
-
-The source code of Worldkiln and AeoScript may be made publicly available for inspection, study, education, evaluation, compilation, testing, and understanding of the Software.
-
-Source availability does not grant permission to:
-
-  - redistribute the source code;
-  - publish modified source code;
-  - sell the source code;
-  - sublicense the source code;
-  - incorporate the source code into another engine or product;
-  - create or distribute forks;
-  - create derivative versions of Worldkiln or AeoScript; or
-  - represent the source code as the work of another person or organization.
-
-All rights in the Software remain with the copyright holder.
-
-5. User Content Remains the User's Property
-
-AEOWUN does not claim ownership of original User Content merely because that content was created, imported, authored, edited, tested, compiled, or built using Worldkiln.
-
-Original User Content remains the property of its respective owner.
-
-This includes, without limitation:
-
-  - original source code written by the user;
-  - original AeoScript gameplay scripts written by the user;
-  - original textures;
-  - original models;
-  - original animations;
-  - original audio;
-  - original music;
-  - original graphics;
-  - original characters;
-  - original worlds and levels;
-  - original user interfaces;
-  - original dialogue and narrative content;
-  - original project data; and
-  - other independently created material.
-
-Using Worldkiln does not transfer ownership of User Content to AEOWUN.
-
-AEOWUN does not acquire copyright, publishing rights, revenue participation, royalties, or other ownership interests in a User Project merely because Worldkiln was used to create it.
-
-6. User Projects
-
-A User Project composed of User Content owned or properly licensed by the user remains the user's project.
-
-Subject to the restrictions in this License and any applicable third-party licenses, the user may determine how that User Project is used, licensed, published, distributed, monetized, sold, or otherwise made available.
-
-This permission applies to the User Project and User Content.
-
-It does not transfer any ownership of Worldkiln, AeoScript, AEOWUN Assets, AEOWUN source code, AEOWUN trademarks, or other AEOWUN-owned intellectual property.
-
-Ownership of a User Project and ownership of Worldkiln are separate.
-
-7. Distribution of Built Projects
-
-A Built Project created using an unmodified copy of Worldkiln may be distributed, published, shared, or sold, provided that the distribution complies with this License.
-
-A Built Project may contain runtime components automatically incorporated into the project by Worldkiln where those components are necessary for execution of the Built Project.
-
-This limited permission exists only for distributing the Built Project as a completed project.
-
-It does not permit redistribution of Worldkiln or AeoScript as a standalone product, development environment, SDK, engine package, scripting system, source distribution, or general-purpose runtime.
-
-A Built Project may not include:
-
-  - Worldkiln source code;
-  - AeoScript implementation source code;
-  - the Worldkiln editor;
-  - development tooling intended to reproduce or redistribute Worldkiln;
-  - source files from the Software that are not necessary user-authored project files;
-  - a separately reusable copy of Worldkiln;
-  - a separately reusable copy of the AeoScript runtime or implementation;
-  - an engine package intended for use in creating other projects; or
-  - any representation that the recipient has received a license to Worldkiln itself beyond components necessarily embedded in the Built Project.
-
-Distribution of a Built Project does not constitute permission to redistribute the Software itself.
-
-8. Commercial Use of User Projects
-
-A User Project created from User Content owned or properly licensed by the user may be used commercially.
-
-Subject to this License, a user may:
-
-  - sell the User Project;
-  - charge for access to the User Project;
-  - publish the User Project commercially;
-  - distribute the User Project through digital storefronts;
-  - monetize the User Project;
-  - license the user's own content;
-  - receive revenue from the User Project; and
-  - otherwise commercially exploit the user's original project.
-
-No royalty, ownership interest, revenue share, or payment to AEOWUN is created solely because an unmodified copy of Worldkiln was used to create the project.
-
-This commercial-project permission does not grant permission to commercially redistribute Worldkiln, AeoScript, AEOWUN source code, or restricted AEOWUN Assets.
-
-9. AEOWUN Assets
-
-AEOWUN Assets are separate from User Content.
-
-Unless an individual asset is distributed under a separate license granting broader rights, AEOWUN Assets are provided only for:
-
-  - personal use;
-  - educational use;
-  - evaluation;
-  - testing;
-  - experimentation;
-  - demonstrations; and
-  - non-commercial development.
-
-AEOWUN Assets may not be assumed to be licensed for commercial publication or redistribution merely because they are bundled with Worldkiln.
-
-Users intending to commercially publish or broadly distribute a User Project are strongly encouraged to use assets that they created themselves or assets for which they independently possess the required rights.
-
-Without separate permission or a separate asset license, AEOWUN Assets may not be:
-
-  - sold;
-  - sublicensed;
-  - redistributed as standalone assets;
-  - included in commercial asset packs;
-  - represented as user-created assets;
-  - extracted and redistributed independently of Worldkiln; or
-  - used commercially where this License does not expressly authorize that use.
-
-Removing, renaming, converting, modifying, or repackaging an AEOWUN Asset does not transfer ownership of that asset.
-
-10. User-Supplied and Third-Party Assets
-
-Users are responsible for all User Content and third-party materials they place into a User Project.
-
-A user represents, by distributing a project, that the user is responsible for determining whether the project contains materials that may lawfully be used and distributed in the intended manner.
-
-AEOWUN does not verify ownership, copyright status, licensing status, trademark rights, publicity rights, privacy rights, or other legal rights associated with user-supplied or third-party materials.
-
-A User Project containing only User Content and other materials properly licensed by the user remains the responsibility and property of the user with respect to those materials.
-
-The user is responsible for claims, disputes, licensing obligations, attribution requirements, royalties, permissions, or other liabilities arising from materials the user chooses to include in a project.
-
-11. No Responsibility for User Projects
-
-AEOWUN does not control User Projects and does not assume responsibility for their content, operation, legality, distribution, security, accuracy, performance, or use.
-
-The creator or distributor of a User Project is responsible for that project.
-
-This includes responsibility for:
-
-  - User Content;
-  - third-party content;
-  - intellectual-property compliance;
-  - licenses and permissions;
-  - privacy obligations;
-  - data collection;
-  - security;
-  - distribution;
-  - monetization;
-  - warranties made by the project creator;
-  - representations made to users or customers;
-  - regulatory compliance; and
-  - any claims arising from the project itself.
-
-A User Project is not endorsed, sponsored, approved, reviewed, or operated by AEOWUN merely because it was created using Worldkiln.
-
-12. No Sale or Redistribution of Worldkiln
-
-Except for the limited Built Project distribution permission described above, you may not sell, rent, lease, sublicense, license, commercialize, or redistribute the Software or any substantial portion of the Software without prior written permission from the copyright holder.
-
-You may not:
-
-  - sell copies of Worldkiln;
-  - sell copies of AeoScript;
-  - redistribute Worldkiln as another engine;
-  - redistribute AeoScript as another scripting system;
-  - sell modified or unmodified versions of the Software;
-  - provide copies of the Worldkiln editor as part of a paid product;
-  - bundle the development environment with another commercial product;
-  - charge specifically for access to Worldkiln itself;
-  - operate Worldkiln as a paid hosted development service without permission;
-  - sublicense the Software;
-  - redistribute the Software for commercial gain; or
-  - use the Software as the foundation of a competing redistributed engine product.
-
-This section does not prohibit charging for a qualifying User Project or Built Project as permitted by Sections 7 and 8.
-
-13. Separation of Engine and Project Ownership
-
-For clarity:
-
-Worldkiln belongs to AEOWUN.
-
-AeoScript and its implementation belong to AEOWUN.
-
-AEOWUN Assets belong to AEOWUN or their respective identified owners.
-
-User Content belongs to the user or its respective owner.
-
-A User Project built from user-owned or properly licensed materials belongs to the user with respect to those materials.
-
-Using Worldkiln does not give AEOWUN ownership of the user's project.
-
-Owning a User Project does not give the user ownership of Worldkiln or AeoScript.
-
-Distributing a Built Project does not grant recipients the right to extract, redistribute, modify, sublicense, or repurpose Worldkiln or AeoScript independently from that Built Project.
-
-14. Trademarks and Branding
-
-The names AEOWUN, Worldkiln, and AeoScript, together with associated logos, marks, graphics, and branding, remain the property of their respective owners.
-
-They may not be used in a way that falsely implies:
-
-  - official endorsement;
-  - sponsorship;
-  - partnership;
-  - affiliation;
-  - certification; or
-  - authorship by AEOWUN.
-
-A project may factually state that it was created using Worldkiln where such a statement is accurate.
-
-Such attribution does not create or imply an official relationship with AEOWUN.
-
-15. Third-Party Software
-
-Worldkiln may contain, link to, bundle, or depend upon third-party software and libraries distributed under separate licenses.
-
-Those components remain governed by their respective licenses.
-
-Nothing in this License:
-
-  - removes rights granted by a third-party license;
-  - restricts rights independently granted by a third-party copyright holder;
-  - transfers ownership of third-party materials to AEOWUN; or
-  - grants rights that AEOWUN does not possess.
-
-Where this License and a valid third-party license apply to different components, each license governs its respective component.
-
-16. Warranty Disclaimer
-
-THE SOFTWARE, AEOWUN ASSETS, DOCUMENTATION, EXAMPLES, TOOLS, RUNTIME COMPONENTS, AND OTHER MATERIALS PROVIDED BY AEOWUN ARE PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND.
-
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, AEOWUN AND THE COPYRIGHT HOLDER DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF:
-
-  - MERCHANTABILITY;
-  - FITNESS FOR A PARTICULAR PURPOSE;
-  - TITLE;
-  - NON-INFRINGEMENT;
-  - ACCURACY;
-  - RELIABILITY;
-  - SECURITY;
-  - COMPATIBILITY; AND
-  - UNINTERRUPTED OR ERROR-FREE OPERATION.
-
-THE USER IS RESPONSIBLE FOR DETERMINING WHETHER THE SOFTWARE AND ANY PROVIDED MATERIALS ARE APPROPRIATE FOR THE USER'S PURPOSES.
-
-17. Limitation of Liability
-
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, ZACHARY JOUBERT, AEOWUN, AND THEIR CONTRIBUTORS SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL, OR OTHER DAMAGES ARISING FROM OR RELATED TO:
-
-  - USE OF THE SOFTWARE;
-  - INABILITY TO USE THE SOFTWARE;
-  - LOSS OF DATA;
-  - LOSS OF PROFITS;
-  - PROJECT FAILURE;
-  - SOFTWARE DEFECTS;
-  - SECURITY ISSUES;
-  - THIRD-PARTY CLAIMS;
-  - USER CONTENT;
-  - THIRD-PARTY CONTENT;
-  - DISTRIBUTION OF A USER PROJECT;
-  - COMMERCIAL USE OF A USER PROJECT; OR
-  - RELIANCE UPON AEOWUN ASSETS, EXAMPLES, DOCUMENTATION, OR OTHER PROVIDED MATERIALS.
-
-USERS DISTRIBUTE AND OPERATE THEIR OWN PROJECTS AT THEIR OWN RISK.
-
-18. Responsibility for Backups and Project Data
-
-Users are responsible for maintaining appropriate backups of projects, source files, assets, builds, configuration files, and other data.
-
-AEOWUN does not guarantee that Worldkiln will preserve, recover, migrate, or remain compatible with project data across every version or development state.
-
-19. Beta and Experimental Features
-
-Worldkiln may include beta, preview, unfinished, experimental, or development-stage features.
-
-Such features may:
-
-  - change without notice;
-  - behave differently between versions;
-  - contain defects;
-  - be removed;
-  - become incompatible with earlier project data; or
-  - require migration in later versions.
-
-BETA: Beta features are experimental and can change at any moment.
-
-Use of beta or experimental functionality is at the user's discretion and risk.
-
-20. Termination
-
-Permissions granted under this License terminate automatically if the user materially violates its terms.
-
-Upon termination, the user must stop unauthorized use or redistribution of the Software and comply with any legal obligations relating to copies of AEOWUN-owned materials in the user's possession.
-
-Termination of the Worldkiln license does not transfer ownership of independently created User Content to AEOWUN.
-
-21. Additional Permission
-
-The copyright holder may grant additional permissions in writing.
-
-Written permission may authorize activities otherwise prohibited by this License, including:
-
-  - modification;
-  - redistribution;
-  - commercial redistribution of the Software;
-  - commercial use of restricted AEOWUN Assets;
-  - creation of derivative engine versions;
-  - integration arrangements; or
-  - other specifically authorized uses.
-
-Additional permission applies only to the scope expressly stated in writing.
-
-22. No Implied Rights
-
-No rights are granted by implication, estoppel, availability of source code, public distribution, or otherwise.
-
-Permission is limited to rights expressly granted by this License.
-
-All rights not expressly granted are reserved.
-
-23. Summary of Ownership Boundaries
-
-For avoidance of doubt:
-
-User-owned assets + user-created project = the user's property and responsibility.
-
-A qualifying Built Project may be distributed or sold under this License.
-
-AEOWUN does not claim ownership of original User Content merely because Worldkiln was used to create it.
-
-Worldkiln, AeoScript, their implementation, source code, editor, and development tooling remain AEOWUN property and may not be separately redistributed, modified, or sold without written permission.
-
-AEOWUN-provided assets are limited to personal, educational, evaluation, testing, and non-commercial development unless a separate license or written permission grants broader rights.
-
-Users are responsible for ensuring they possess the rights necessary to distribute every asset and other work included in their projects.
-
-Copyright © 2026 Zachary Joubert / AEOWUN. All rights reserved.
-
-Worldkiln is source-available software and is not released under an open-source license.
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.

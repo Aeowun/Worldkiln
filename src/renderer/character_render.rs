@@ -1,7 +1,6 @@
 // Worldkiln
-// Copyright (c) 2026 Zachary Joubert / AEOWUN. All rights reserved.
-// Licensed under the AeoEngine Source-Available License.
-// See LICENSE in the repository root for the complete terms.
+// Copyright (c) 2026 Zachary Joubert / AEOWUN
+// SPDX-License-Identifier: Apache-2.0
 use super::mesh::VERTEX_3D_FLOATS;
 use super::{Renderer, StaticEntityGpuBatch, StaticEntityGpuMesh};
 use crate::engine::entity::{EntityId, RuntimeEntity};
