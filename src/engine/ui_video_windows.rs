@@ -322,7 +322,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn media_foundation_normalizes_canonical_windows_paths() {
         assert_eq!(
@@ -340,5 +339,4 @@ mod tests {
         assert!(media_foundation_file_path(Path::new(r"\\?\Volume{123}\abc.mp4")).is_err());
         assert!(media_foundation_file_path(Path::new(r"\\.\PhysicalDrive0")).is_err());
     }
-
 }

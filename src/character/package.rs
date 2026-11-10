@@ -1275,8 +1275,6 @@ mod tests {
         (min, max)
     }
 
-
-
     #[test]
     fn rig_import_rejects_forward_parent_cycles_and_invalid_transforms_without_panicking() {
         let valid = serde_json::json!({
@@ -1383,5 +1381,4 @@ mod tests {
 
         std::fs::remove_dir_all(root).unwrap();
     }
-
 }

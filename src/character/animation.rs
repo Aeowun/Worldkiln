@@ -435,6 +435,39 @@ impl CharacterAnimationController {
         }
     }
 
+    pub fn playback_rate(&self) -> f32 {
+        self.playback_rate
+    }
+
+    pub fn sync_network_playback(&mut self, clip: &str, time: f32, playing: bool, rate: f32) {
+        if !time.is_finite() || !rate.is_finite() || clip.len() > 160 {
+            return;
+        }
+        let Some(index) = self.resolve_clip_name(clip) else {
+            return;
+        };
+        let active = if self.target_weight >= 0.5 {
+            self.clip_b
+        } else {
+            self.clip_a
+        };
+        if active != index {
+            self.select_clip_name(clip);
+        }
+        let current = self.playback_time();
+        let duration = self.clips[index].duration;
+        let drift = (current - time).abs();
+        if drift > 0.15 && (duration <= 0.0 || (duration - drift).abs() > 0.15) {
+            if self.target_weight >= 0.5 {
+                self.current_time_b = time;
+            } else {
+                self.current_time_a = time;
+            }
+        }
+        self.playback_rate = rate.clamp(0.0, 8.0);
+        self.playing = playing;
+    }
+
     pub fn set_playback_rate(&mut self, rate: f32) {
         self.playback_rate = rate;
     }

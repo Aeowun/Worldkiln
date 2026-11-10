@@ -67,7 +67,12 @@ pub(crate) fn snapshot_persisted_files(project_root: &Path) -> io::Result<BTreeM
                 .lines()
                 .find_map(|line| line.strip_prefix("STORAGE_GENERATION ").map(str::to_owned))
         })
-        .filter(|id| !id.is_empty() && id.bytes().all(|byte| byte.is_ascii_hexdigit() || byte == b'-'))
+        .filter(|id| {
+            !id.is_empty()
+                && id
+                    .bytes()
+                    .all(|byte| byte.is_ascii_hexdigit() || byte == b'-')
+        })
         .map(|id| project_root.join(".world_generations").join(id));
     let directories = [
         Some(project_root.join("chunks")),

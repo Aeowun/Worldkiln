@@ -21,6 +21,13 @@ impl CharacterSystem {
         id
     }
 
+    pub fn despawn_network_character(&mut self, id: u64) -> bool {
+        if self.active_player_id == Some(id) || self.character_to_entity.contains_key(&id) {
+            return false;
+        }
+        self.characters.remove(&id).is_some()
+    }
+
     pub fn get_active_characters(&self) -> impl Iterator<Item = &Character> {
         self.characters.values()
     }

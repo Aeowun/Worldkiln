@@ -227,12 +227,15 @@ fn external_sync_cells_and_sources_refresh_without_terrain_reload() {
     let source_id = remote.add_source(crate::world::CellType::Light, glam::Vec3::ONE);
     crate::world::persistence::save_world(&remote, &f.0.join("world.dat")).unwrap();
     let manifest = fs::read_to_string(f.0.join("world.dat")).unwrap();
-        let generation = manifest
-            .lines()
-            .find_map(|line| line.strip_prefix("STORAGE_GENERATION "))
-            .unwrap();
-        let terrain = f.0.join(".world_generations").join(generation).join("terrain");
-        fs::create_dir_all(&terrain).unwrap();
+    let generation = manifest
+        .lines()
+        .find_map(|line| line.strip_prefix("STORAGE_GENERATION "))
+        .unwrap();
+    let terrain =
+        f.0.join(".world_generations")
+            .join(generation)
+            .join("terrain");
+    fs::create_dir_all(&terrain).unwrap();
     fs::write(terrain.join("terrain.json"), "not terrain json").unwrap();
     let mut probe = World::new();
     assert!(crate::world::persistence::load_world(&mut probe, &f.0.join("world.dat")).is_err());

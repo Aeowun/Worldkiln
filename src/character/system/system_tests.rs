@@ -108,7 +108,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn wk_swim_actual_lake_surface_stays_level_for_downward_aim() {
         use crate::character::movement::SwimMode;
@@ -389,7 +388,6 @@ mod tests {
     }
 
     #[cfg(windows)]
-
     #[test]
     fn play_scripted_path_lands_on_underlying_cell_and_holds_36000_frames() {
         let mut world = World::new();

@@ -335,9 +335,7 @@ pub(super) const SHADOW_NEAR: f32 = 0.1;
 pub(super) const SHADOW_FAR: f32 = 100.0;
 pub(super) const SHADOW_LIGHT_DISTANCE: f32 = 50.0;
 
-pub(super) fn physics_body_model_matrix(
-    body: &crate::engine::physics::PhysicsBody,
-) -> Mat4 {
+pub(super) fn physics_body_model_matrix(body: &crate::engine::physics::PhysicsBody) -> Mat4 {
     let center = body.size * 0.5;
     Mat4::from_translation(body.position + center)
         * Mat4::from_quat(body.rotation)

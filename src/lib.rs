@@ -10,6 +10,8 @@ pub mod engine;
 pub mod game;
 pub mod landscape;
 pub mod navigation;
+#[path = "networking/network.rs"]
+pub mod network;
 pub mod project;
 pub mod renderer;
 pub mod scripting;

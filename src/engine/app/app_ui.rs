@@ -640,6 +640,7 @@ impl App {
                 }
             }
 
+            self.update_multiplayer_ui();
             if std::mem::take(&mut self.editor.save_requested) {
                 self.save_all_authored();
             }
@@ -662,7 +663,9 @@ impl App {
             if self.packaging_open {
                 self.draw_packaging_workspace(ctx);
             }
-            self.draw_first_run_controls_overlay(ctx);
+            if crate::engine::telemetry::selected_tier().is_some() {
+                self.draw_first_run_controls_overlay(ctx);
+            }
 
             if self.editor.mode == EditorMode::Editor
                 && !self.editor.show_script_workspace
@@ -837,6 +840,10 @@ impl App {
                         });
                     });
             }
+        }
+
+        if self.view != View::Splash {
+            self.draw_telemetry_first_run(ctx);
         }
 
         let pending_sounds = std::mem::take(&mut self.editor.pending_engine_sounds);
@@ -1015,6 +1022,57 @@ impl App {
         }
         self.development_summary_cache = None;
         self.editor.development_test_run_ui.investigation.refresh = true;
+    }
+
+    fn draw_telemetry_first_run(&mut self, ctx: &egui::Context) {
+        use crate::engine::telemetry::{self, EventKind, Tier};
+        if telemetry::selected_tier().is_some() {
+            return;
+        }
+        egui::Window::new("WORLDKILN INSIGHTS")
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .collapsible(false)
+            .resizable(false)
+            .show(ctx, |ui| {
+                ui.set_min_width(420.0);
+                ui.label("Choose what Worldkiln may send to help improve the engine.");
+                ui.add_space(12.0);
+                ui.radio_value(
+                    &mut self.telemetry_first_run_selection,
+                    Tier::Full,
+                    "Full (recommended)",
+                );
+                ui.small("Random installation ID, editor launches, Play sessions, builds, and errors.");
+                ui.add_space(8.0);
+                ui.radio_value(
+                    &mut self.telemetry_first_run_selection,
+                    Tier::Diagnostics,
+                    "Diagnostics Only",
+                );
+                ui.small("Only technical failures, without normal activity tracking.");
+                ui.add_space(8.0);
+                ui.radio_value(
+                    &mut self.telemetry_first_run_selection,
+                    Tier::Off,
+                    "Off",
+                );
+                ui.small("No telemetry collection or uploads.");
+                ui.add_space(10.0);
+                ui.label("You can change this anytime in Settings > Privacy.");
+                ui.label("Exported games are not tracked.");
+                ui.add_space(14.0);
+                if ui.button("SAVE SELECTION").clicked() {
+                    match telemetry::set_tier(self.telemetry_first_run_selection) {
+                        Ok(()) => telemetry::record(EventKind::EditorLaunched),
+                        Err(error) => {
+                            ui.colored_label(
+                                egui::Color32::RED,
+                                format!("Unable to save telemetry preference: {error}"),
+                            );
+                        }
+                    }
+                }
+            });
     }
 
     fn draw_first_run_controls_overlay(&mut self, ctx: &egui::Context) {

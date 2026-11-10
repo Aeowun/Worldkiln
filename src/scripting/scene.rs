@@ -3883,7 +3883,42 @@ fn needs_argument(value) {
     }
 
     #[test]
+    fn network_namespace_preserves_solo_script_execution() {
+        let source = r#"
+debug.log("role", network.role)
+debug.log("server", network.is_server)
+debug.log("client", network.is_client)
+debug.log("connected", network.connected)
+debug.log("permission", network.require_server())
+debug.log("owner", network.is_local_player(2))
+"#;
+        let mut engine = test_host();
+        let mut host = HostContext {
+            delta_time: 0.0,
+            engine: &mut engine,
+        };
+        let mut scene = create_scene(source, &mut host);
+        scene.start(&mut host).unwrap();
+        scene.update(0.0, &mut host).unwrap();
+        let messages: Vec<_> = scene
+            .output()
+            .iter()
+            .map(|record| record.message.as_str())
+            .collect();
+        assert!(messages.iter().any(|line| line.contains("role solo")));
+        assert!(messages.iter().any(|line| line.contains("server true")));
+        assert!(messages.iter().any(|line| line.contains("client false")));
+        assert!(messages.iter().any(|line| line.contains("connected false")));
+        assert!(messages.iter().any(|line| line.contains("permission true")));
+        assert!(messages.iter().any(|line| line.contains("owner false")));
+    }
+
+    #[test]
     fn test_host_context_construction() {
+        assert_eq!(
+            crate::scripting::network::NetworkScriptContext::default().role,
+            crate::scripting::network::NetworkRole::Solo
+        );
         let mut th = test_host();
         let mut host = HostContext {
             delta_time: 0.1,
@@ -5150,7 +5185,6 @@ debug.log("MODULE_AFTER_WAIT", self.parent)
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
 
-
     #[test]
     fn failing_actor_module_is_quarantined_without_blocking_other_modules() {
         let mut th = test_host();
@@ -5340,7 +5374,6 @@ debug.log("MODULE_AFTER_WAIT", self.parent)
             "unrelated contact pairs must not spawn script work"
         );
     }
-
 
     #[test]
     fn entity_contact_dispatches_attached_actor_module_handler() {
@@ -7393,6 +7426,7 @@ entity Test {
         let mut pending_destroys = Vec::new();
         let mut bridge = crate::scripting::host::ScriptHostBridge {
             game_state: None,
+            network_context: Default::default(),
             entity_manager: &mut th.entity_manager,
             attachment_system: None,
             world: &mut th.world,
@@ -8187,6 +8221,7 @@ entity Trigger {
         {
             let mut bridge = crate::scripting::host::ScriptHostBridge {
                 game_state: None,
+                network_context: Default::default(),
                 entity_manager: &mut em,
                 attachment_system: None,
                 world: &mut world,
@@ -8779,6 +8814,7 @@ entity Spawner {
 
         let mut bridge = crate::scripting::host::ScriptHostBridge {
             game_state: None,
+            network_context: Default::default(),
             entity_manager: &mut em,
             attachment_system: None,
             world: &mut world,

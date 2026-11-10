@@ -13,6 +13,8 @@ mod game;
 mod kilngraph;
 mod landscape;
 mod navigation;
+#[path = "networking/network.rs"]
+mod network;
 mod project;
 mod renderer;
 mod scripting;
@@ -58,6 +60,42 @@ fn show_game_bootstrap_error(message: &str) {
 }
 
 fn main() {
+    let mut multiplayer_args = std::env::args_os().skip(1);
+    if multiplayer_args.next().as_deref()
+        == Some(std::ffi::OsStr::new("--worldkiln-multiplayer-instance"))
+    {
+        let role = match multiplayer_args.next().as_deref() {
+            Some(value) if value == "host" => network::play_session::NetworkTestRole::Host,
+            Some(value) if value == "join" => network::play_session::NetworkTestRole::Join,
+            _ => {
+                eprintln!("Expected multiplayer host or join role");
+                return;
+            }
+        };
+        let Some(address) = multiplayer_args.next().and_then(|value| {
+            value
+                .to_str()
+                .and_then(|s| s.parse::<std::net::SocketAddr>().ok())
+        }) else {
+            eprintln!("Expected multiplayer IP:PORT");
+            return;
+        };
+        let Some(project) = multiplayer_args.next().map(std::path::PathBuf::from) else {
+            eprintln!("Expected an isolated multiplayer project path");
+            return;
+        };
+        if multiplayer_args.next().is_some() || !project.join("world.dat").is_file() {
+            eprintln!("Invalid isolated multiplayer project");
+            return;
+        }
+        game::platform::desktop::run_game_with_multiplayer(
+            project,
+            "Worldkiln".to_owned(),
+            None,
+            Some((role, address)),
+        );
+        return;
+    }
     let current_exe =
         std::env::current_exe().expect("Failed to determine current Worldkiln executable");
 
@@ -138,6 +176,9 @@ fn main() {
         exe_dir
     };
     std::env::set_current_dir(working_dir).expect("Failed to set working directory for Worldkiln");
+
+    engine::telemetry::initialize();
+    engine::telemetry::record(engine::telemetry::EventKind::EditorLaunched);
 
     let event_loop = EventLoop::new().expect("Failed to create event loop");
 

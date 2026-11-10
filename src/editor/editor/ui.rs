@@ -1342,6 +1342,48 @@ fn draw_lighting_performance_overlay(
         });
 }
 
+fn draw_privacy_settings(ui: &mut egui::Ui) {
+    use crate::engine::telemetry::{self, Tier};
+
+    settings_page_header(
+        ui,
+        "PRIVACY & TELEMETRY",
+        "Choose which Worldkiln editor events may be shared with Aeowun.",
+    );
+    settings_section(ui, "WORLDKILN INSIGHTS");
+    let mut chosen = telemetry::selected_tier().unwrap_or(Tier::Full);
+    if editable_settings_combo(
+        ui,
+        "settings_telemetry_tier",
+        "Telemetry",
+        &mut chosen,
+        &Tier::ALL,
+        Tier::label,
+    ) {
+        if let Err(error) = telemetry::set_tier(chosen) {
+            ui.colored_label(egui::Color32::RED, format!("Could not save preference: {error}"));
+        }
+    }
+    ui.add_space(10.0);
+    ui.label("Full: Editor launches, Play activity, builds, and technical failures.");
+    ui.label("Diagnostics Only: Failure events without normal usage tracking.");
+    ui.label("Off: No Worldkiln Insights network requests or event uploads.");
+    ui.label("Game exports do not contain Worldkiln Insights.");
+    ui.add_space(10.0);
+    if let Some(id) = telemetry::support_id() {
+        ui.horizontal(|ui| {
+            ui.label("Support ID:");
+            ui.monospace(&id);
+            if ui.button("Copy").clicked() {
+                ui.output_mut(|output| output.copied_text = id);
+            }
+        });
+        ui.small("Share this ID only when requesting help with a diagnostic report.");
+    } else {
+        ui.small("No Support ID is stored while telemetry is off or not configured.");
+    }
+}
+
 fn draw_editor_settings(
     ui: &mut egui::Ui,
     settings: &mut crate::engine::preferences::ThemeSettings,
@@ -1994,6 +2036,7 @@ impl Editor {
             self.navigate_history_forward();
         }
         timed_surface!("menu_bar", self.draw_menu_bar(ctx));
+        timed_surface!("multiplayer_dialogs", self.multiplayer_ui.draw_windows(ctx));
         if self.asset_manager.open {
             if self.ai_chat.open && self.right_panel_tab == super::RightPanelTab::Ai {
                 timed_surface!(
@@ -2387,6 +2430,13 @@ impl Editor {
                     {
                         self.navigate_to(super::feature_nav::Feature::Play);
                     }
+                    ui.menu_button("More", |ui| {
+                        if ui.button("Play Solo").clicked() {
+                            self.navigate_to(super::feature_nav::Feature::Play);
+                            ui.close_menu();
+                        }
+                        self.multiplayer_ui.draw_play_menu(ui);
+                    });
                 });
             });
         });
@@ -4740,6 +4790,9 @@ impl Editor {
                                             self.close_settings();
                                             self.right_panel_tab = super::RightPanelTab::Ai;
                                         }
+                                    }
+                                    SettingsPage::Privacy => {
+                                        draw_privacy_settings(ui);
                                     }
                                     SettingsPage::Development => {
                                         Self::draw_development_settings(

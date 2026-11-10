@@ -5,6 +5,7 @@ Development history for Worldkiln and AeoScript.
 ## Contents
 
 - [1.0.x](#10x)
+- [1.1.x](#11x)
 
 ---
 
@@ -23,6 +24,7 @@ Development history for Worldkiln and AeoScript.
 - Added the latest Worldkiln developer notes to the Home screen.
 - Added Publish to Aeowun beneath Manage for built games on the Home screen.
 - Fixed the Packaging panel scrolling to keep publishing controls accessible.
+- Fixed asset pack downloads to use the dedicated Worldkiln asset-pack release repository.
 - Reworked mouse capture and cursor handling for more reliable behavior in the Editor and during gameplay.
 - Improved keyboard and mouse input handling when switching between game windows and other applications.
 - Fixed mouse capture and cursor visibility issues when opening menus or returning to gameplay.
@@ -50,7 +52,8 @@ Development history for Worldkiln and AeoScript.
 - Fixed game restart functionality not working correctly in standalone games.
 - Improved visual consistency, including shadows and interface scaling.
 - Added better error logging to make troubleshooting exported games easier.
-- Improved single-executable offline packaging
++
+
 
 ### AeoScript Game Controls
 
@@ -58,3 +61,25 @@ Development history for Worldkiln and AeoScript.
 - Added game.pause() and game.resume() for single-player games.
 - Added game quit, pause, and resume events for creator-authored lifecycle handling.
 - Added game timing, pause-state, and Editor/standalone context properties.
+
+# 1.1.x
+
+## 1.1.0
+
+> Multiplayer features are undergoing release verification. Security, compatibility, and end-to-end internet gameplay checks.
+
+### Multiplayer
+
+- Added host/client networking sessions with versioned connections and disconnect handling.
+- Added player ownership so each connected player controls their own Character.
+- Synchronized Character movement, rotation, and facing direction across connected games.
+- Preserved existing Character controls and independent camera behavior for each player.
+- Added support for multiple players joining the same multiplayer session.
+- Added synchronization for shared Actors and their physics, including movement, rotation, and velocity.
+- Added synchronization for Cells created, moved, modified, or removed during gameplay.
+- Improved multiplayer stability when players disconnect or join an existing session.
+- Added server-authoritative handling of shared physics to keep objects consistent between players.
+- Added tools to launch connected host and client instances from the Editor.
+- Added multiplayer role and player identity APIs, client requests, and host-published game state.
+- Added diagnostics when client scripts attempt operations requiring host authority.
+- Strengthened host-side player movement speed and collision validation.

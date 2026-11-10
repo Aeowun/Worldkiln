@@ -187,6 +187,7 @@ impl App {
                 let has_player = self.character_system.get_active_player().is_some();
                 let mut bridge = ScriptHostBridge {
                     game_state: Some(self.game_state.clone()),
+                    network_context: Default::default(),
                     entity_manager: &mut self.entity_manager,
                     attachment_system: Some(&mut self.attachment_system),
                     world: &mut self.world,
@@ -292,6 +293,7 @@ impl App {
         if let Some(mut scene) = scene_opt {
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: Default::default(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
 
@@ -390,6 +392,7 @@ impl App {
         if let Some(scene) = &mut self.script_scene {
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: Default::default(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
 
@@ -486,6 +489,7 @@ impl App {
 
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: Default::default(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
 
@@ -768,6 +772,7 @@ impl App {
                 if let (Some(scene), Some(controller)) = (scene_opt.as_mut(), controller_opt) {
                     let mut bridge = ScriptHostBridge {
                         game_state: Some(self.game_state.clone()),
+                        network_context: Default::default(),
                         entity_manager,
                         attachment_system: Some(attachment_system),
                         world,
@@ -973,6 +978,7 @@ impl App {
             if let Some(scene) = scene_opt.as_mut() {
                 let mut bridge = ScriptHostBridge {
                     game_state: Some(self.game_state.clone()),
+                    network_context: Default::default(),
                     entity_manager,
                     attachment_system: Some(attachment_system),
                     world,
@@ -1049,6 +1055,7 @@ impl App {
                 let has_player = character_system.get_active_player().is_some();
                 let mut bridge = ScriptHostBridge {
                     game_state: Some(self.game_state.clone()),
+                    network_context: Default::default(),
                     entity_manager,
                     attachment_system: Some(attachment_system),
                     world,
@@ -1147,6 +1154,7 @@ impl App {
         if let Some(scene) = &mut self.script_scene {
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: Default::default(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
 

@@ -125,3 +125,34 @@ on game_on_quit() {
 `game_on_quit` is only a signal. Saving and other end-of-game actions are entirely creator-authored. A game may decide when to call `game.quit()` based on its own save logic.
 
 `game.restart()` reloads the current gameplay session without closing its window and without clearing saved values. `save.restart()` only resets and commits saved values; it does not restart gameplay. `save.reset()` retains its existing uncommitted reset behavior.
+
+A lost multiplayer host does not terminate a client process. Reliable transfer of host authority is a separate networking operation and is not provided by `game.quit()`.
+
+## Internet multiplayer invitations (V1.1.0 development)
+
+Internet sessions are opt-in. A project may use the general AeoScript networking calls to create and join sessions.
+
+| Call | Behavior |
+| --- | --- |
+| `network.host_invite(2)` | Asynchronously requests a relay-backed two-player session; accepts an optional player capacity from 2 to 8. |
+| `network.join_invite(link)` | Asynchronously joins a session by HTTPS invite URL or 32-character invitation code. |
+| `network.invite_link()` | Returns the current host's shareable URL, or an empty string when none is active. |
+| `network.leave()` | Leaves the active session and returns the calling game instance to Solo. |
+| `clipboard.write(link)` | Copies a string to the system clipboard; returns true on success. |
+| `clipboard.read()` | Reads text from the system clipboard. |
+
+A host receives `network_invite_ready(link)` when the relay issues an invitation; a failed connection emits `network_join_failed(reason)`. The existing `network_started` and `network_disconnected` events remain available. The game decides if, when and how these events affect its authored UI.
+
+```aeoscript
+on network_invite_ready(link) {
+    clipboard.write(link)
+    debug.log("Invitation copied")
+}
+
+on network_join_failed(reason) {
+    debug.log("Unable to join:", reason)
+}
+```
+
+The default relay uses outbound encrypted WebSocket connections. A custom HTTPS relay origin can be configured with the runtime environment variable `WORLDKILN_RELAY_URL`. The relay is transport only; host-authoritative gameplay and scene replication remain in the existing game runtime.
+

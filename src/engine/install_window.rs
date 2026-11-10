@@ -389,6 +389,12 @@ pub(crate) fn run_installer_window(
 
                         InstallerMessage::Finished(Err(error)) => {
                             eprintln!("[INSTALL ERROR] {error}");
+                            let kind = if error.starts_with("Protected update failed:") {
+                                crate::engine::telemetry::EventKind::UpdateFailed
+                            } else {
+                                crate::engine::telemetry::EventKind::InstallFailed
+                            };
+                            crate::engine::telemetry::record(kind);
 
                             installation_failed = true;
                             failure_detail = Some(error);

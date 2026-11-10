@@ -208,5 +208,4 @@ fn run_audio_worker(path: &Path, control: &VideoControl) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
 }

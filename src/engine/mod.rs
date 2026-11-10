@@ -30,6 +30,8 @@ pub mod particles;
 pub mod physics;
 pub mod preferences;
 #[cfg(feature = "editor")]
+pub mod telemetry;
+#[cfg(feature = "editor")]
 pub(crate) mod runtime_scene_analysis;
 pub mod save_state;
 pub mod spatial_world;

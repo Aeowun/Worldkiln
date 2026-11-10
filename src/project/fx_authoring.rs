@@ -755,7 +755,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn edit_history_coalesces_drag_reverses_and_cancels_without_serialization() {
         let mut doc = EffectDocument::new("fx.history", "History");
@@ -892,7 +891,6 @@ mod tests {
         std::fs::remove_dir_all(folder).unwrap();
     }
 
-
     #[test]
     fn standalone_fire_sprite_compiles_without_an_existing_creator_template() {
         let mut doc = EffectDocument::new("standalone", "Standalone Ember");
@@ -972,10 +970,7 @@ mod tests {
         assert_eq!(doc.to_json().unwrap(), restored.to_json().unwrap());
     }
 
-
-
     #[cfg(windows)]
-
     #[test]
     fn rejects_invalid_ids_paths_and_curve_order() {
         let mut doc = fire();

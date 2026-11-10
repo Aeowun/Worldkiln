@@ -794,7 +794,6 @@ mod tests {
 mod fx_import_tests {
     use super::*;
 
-
     #[test]
     fn project_fx_import_preserves_relative_resources() {
         let base =

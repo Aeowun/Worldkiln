@@ -39,7 +39,6 @@ pub(crate) fn resolve_with_friction(
     let relative = a.velocity - b.velocity;
     let speed = relative.dot(n);
     if speed < 0.0 {
-        
         let impulse = -speed / total;
         a.velocity += n * (impulse * a.inverse_mass);
         b.velocity -= n * (impulse * b.inverse_mass);
@@ -195,7 +194,7 @@ pub(crate) fn resolve_angular_with_friction(
         if effective_mass <= 1e-9 {
             return true;
         }
-        
+
         let magnitude = -inward / effective_mass;
         impulse(a, b, aa, ab, ra, rb, n * magnitude);
 

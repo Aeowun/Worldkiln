@@ -254,7 +254,7 @@ impl PhysicsWorld {
                         };
                         let coefficient = (body.friction.max(0.0)
                             * self.anchored_support_friction(b_min, b_max, normal))
-                            .sqrt();
+                        .sqrt();
                         let body = &mut self.bodies[i];
                         let mass = body.get_mass();
                         let mut moving = Motion {
@@ -1814,7 +1814,11 @@ impl PhysicsWorld {
                             } else {
                                 1.0 / character_mass
                             };
-                            let entity_inverse = if anchored || self.rapier_runtime.is_some() { 0.0 } else { 1.0 / entity_mass };
+                            let entity_inverse = if anchored || self.rapier_runtime.is_some() {
+                                0.0
+                            } else {
+                                1.0 / entity_mass
+                            };
                             use super::rigid_contact::{Motion, resolve};
                             let mut character_motion = Motion {
                                 position: char_pos,

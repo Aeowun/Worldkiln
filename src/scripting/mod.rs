@@ -11,6 +11,7 @@ pub mod host;
 pub mod interpreter;
 pub mod lexer;
 pub mod log;
+pub mod network;
 pub mod parser;
 mod particle_api;
 pub mod runtime;

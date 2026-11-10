@@ -646,7 +646,10 @@ pub fn create_engine_assets_archive(
     expected_version: &str,
 ) -> Result<(String, u64), String> {
     if !assets_dir.is_dir() {
-        return Err(format!("Engine runtime assets are missing: {}", assets_dir.display()));
+        return Err(format!(
+            "Engine runtime assets are missing: {}",
+            assets_dir.display()
+        ));
     }
     let version = fs::read_to_string(assets_dir.join("version.txt"))
         .map_err(|error| format!("Engine runtime asset version is missing: {error}"))?;
@@ -668,7 +671,11 @@ pub fn create_engine_assets_archive(
         .map_err(|error| format!("Cannot list engine runtime assets: {error}"))?;
     entries.sort_by_key(|entry| entry.file_name());
     for entry in entries {
-        if entry.file_name().to_string_lossy().eq_ignore_ascii_case("assistant") {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .eq_ignore_ascii_case("assistant")
+        {
             continue;
         }
         let path = entry.path();
@@ -681,11 +688,13 @@ pub fn create_engine_assets_archive(
         let options = zip::write::SimpleFileOptions::default()
             .compression_method(zip::CompressionMethod::Deflated);
         if metadata.is_dir() {
-            writer.add_directory(format!("{relative}/"), options)
+            writer
+                .add_directory(format!("{relative}/"), options)
                 .map_err(|error| format!("Cannot add engine asset directory: {error}"))?;
             zip_project_directory(&mut writer, root, &path)?;
         } else if metadata.is_file() {
-            writer.start_file(&relative, options)
+            writer
+                .start_file(&relative, options)
                 .map_err(|error| format!("Cannot add engine asset file: {error}"))?;
             std::io::copy(
                 &mut File::open(&path).map_err(|error| error.to_string())?,
@@ -694,7 +703,9 @@ pub fn create_engine_assets_archive(
             .map_err(|error| format!("Cannot embed engine asset: {error}"))?;
         }
     }
-    writer.finish().map_err(|error| format!("Cannot finish engine assets: {error}"))?;
+    writer
+        .finish()
+        .map_err(|error| format!("Cannot finish engine assets: {error}"))?;
     sha256_file(destination)
 }
 
@@ -869,9 +880,10 @@ fn validate_manifest(manifest: &EmbeddedGameManifest) -> Result<(), String> {
     if manifest.runtime_asset_name != RUNTIME_RELEASE_ASSET_NAME {
         return Err("Embedded game references an unsupported runtime asset".to_string());
     }
-    if !embedded_runtime && !manifest
-        .runtime_asset_url
-        .starts_with("https://github.com/Aeowun/Worldkiln/releases/download/")
+    if !embedded_runtime
+        && !manifest
+            .runtime_asset_url
+            .starts_with("https://github.com/Aeowun/Worldkiln/releases/download/")
     {
         return Err(
             "Embedded game runtime asset URL is not an approved Worldkiln GitHub release URL"
@@ -895,10 +907,15 @@ fn validate_manifest(manifest: &EmbeddedGameManifest) -> Result<(), String> {
             || profile.assets != "project_and_portable_packs"
             || !matches!(
                 profile.runtime_delivery.as_str(),
-                "verified_download_if_uncached" | "bundled_verified_runtime" | "embedded_verified_runtime"
+                "verified_download_if_uncached"
+                    | "bundled_verified_runtime"
+                    | "embedded_verified_runtime"
             )
             || profile.splash != "worldkiln_default"
-            || profile.executable_template_sha256.as_ref().is_some_and(|sha| !validate_hex_sha256(sha))
+            || profile
+                .executable_template_sha256
+                .as_ref()
+                .is_some_and(|sha| !validate_hex_sha256(sha))
             || profile.display_title.trim().is_empty()
             || profile.display_title.len() > 256
         {
@@ -1436,7 +1453,8 @@ pub fn prepare_embedded_game_from(
 ) -> Result<PreparedGame, String> {
     validate_manifest(&package.manifest)?;
     let game_data = ensure_project_payload_installed(executable, package, local_app_data)?;
-    let runtime_root = ensure_runtime_assets(&package.manifest, local_app_data, executable, &game_data)?;
+    let runtime_root =
+        ensure_runtime_assets(&package.manifest, local_app_data, executable, &game_data)?;
     Ok(PreparedGame {
         game_data,
         runtime_root,
@@ -1495,12 +1513,9 @@ mod tests {
         )
         .unwrap();
         let runtime_zip = root.join("engine-assets.zip");
-        let (runtime_sha, runtime_size) = create_engine_assets_archive(
-            &engine_assets,
-            &runtime_zip,
-            env!("CARGO_PKG_VERSION"),
-        )
-        .unwrap();
+        let (runtime_sha, runtime_size) =
+            create_engine_assets_archive(&engine_assets, &runtime_zip, env!("CARGO_PKG_VERSION"))
+                .unwrap();
         let project = root.join("Project");
         fs::create_dir_all(project.join("scripts")).unwrap();
         fs::write(project.join("world.dat"), "world").unwrap();
@@ -1513,11 +1528,8 @@ mod tests {
         manifest.runtime_asset_url.clear();
         manifest.runtime_asset_sha256 = runtime_sha;
         manifest.runtime_asset_size = runtime_size;
-        manifest
-            .export_profile
-            .as_mut()
-            .unwrap()
-            .runtime_delivery = "embedded_verified_runtime".into();
+        manifest.export_profile.as_mut().unwrap().runtime_delivery =
+            "embedded_verified_runtime".into();
         validate_manifest(&manifest).unwrap();
         let template = root.join("engine.exe");
         fs::write(&template, b"MZ test engine").unwrap();
@@ -1527,12 +1539,7 @@ mod tests {
         fs::remove_file(&payload).unwrap();
         assert!(!root.join("UserData.zip").exists());
         let package = probe_embedded_game(&game).unwrap().unwrap();
-        let prepared = prepare_embedded_game_from(
-            &game,
-            &package,
-            &root.join("AppData"),
-        )
-        .unwrap();
+        let prepared = prepare_embedded_game_from(&game, &package, &root.join("AppData")).unwrap();
         assert_eq!(
             fs::read_to_string(prepared.runtime_root.join(".assets/version.txt")).unwrap(),
             env!("CARGO_PKG_VERSION")
@@ -1575,19 +1582,33 @@ mod tests {
         assert!(restored.export_profile.is_none());
         validate_manifest(&restored).unwrap();
 
-        manifest.export_profile.as_mut().unwrap().executable_template_sha256 =
-            Some("a".repeat(64));
+        manifest
+            .export_profile
+            .as_mut()
+            .unwrap()
+            .executable_template_sha256 = Some("a".repeat(64));
         validate_manifest(&manifest).unwrap();
         let round_trip: EmbeddedGameManifest =
             serde_json::from_value(serde_json::to_value(&manifest).unwrap()).unwrap();
         assert_eq!(
-            round_trip.export_profile.unwrap().executable_template_sha256.as_deref(),
+            round_trip
+                .export_profile
+                .unwrap()
+                .executable_template_sha256
+                .as_deref(),
             Some("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         );
-        manifest.export_profile.as_mut().unwrap().executable_template_sha256 =
-            Some("not-a-sha".into());
+        manifest
+            .export_profile
+            .as_mut()
+            .unwrap()
+            .executable_template_sha256 = Some("not-a-sha".into());
         assert!(validate_manifest(&manifest).is_err());
-        manifest.export_profile.as_mut().unwrap().executable_template_sha256 = None;
+        manifest
+            .export_profile
+            .as_mut()
+            .unwrap()
+            .executable_template_sha256 = None;
         manifest.export_profile.as_mut().unwrap().target_platform = "linux".to_string();
         assert!(validate_manifest(&manifest).is_err());
     }
@@ -1774,7 +1795,13 @@ mod tests {
         let mut bad = manifest.clone();
         bad.runtime_asset_sha256 = "f".repeat(64);
         assert!(
-            ensure_runtime_assets(&bad, &root.join("FreshCache"), &root.join("Game.exe"), &root).is_err()
+            ensure_runtime_assets(
+                &bad,
+                &root.join("FreshCache"),
+                &root.join("Game.exe"),
+                &root
+            )
+            .is_err()
         );
         fs::remove_dir_all(root).unwrap();
     }

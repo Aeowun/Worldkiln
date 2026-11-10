@@ -17,7 +17,7 @@ pub enum AttributeValue {
     String(String),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default, Hash, Serialize, Deserialize)]
 pub enum CellType {
     #[default]
     Empty,
@@ -81,7 +81,7 @@ impl CellType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Cell {
     pub id: u64,
     pub cell_type: CellType,
@@ -115,7 +115,7 @@ pub struct Cell {
     pub attributes: BTreeMap<String, AttributeValue>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RuntimeCellState {
     pub source_position: Option<Vec3>,
     pub light_enabled: Option<bool>,

@@ -114,8 +114,11 @@ impl Renderer {
 
         const CHARACTER_CAMERA_HIDE_DISTANCE: f32 = 2.0;
 
-        let light_space_matrix =
-            self.calculate_light_space_matrix_with_range(world.lighting.global_light_direction, camera_pos, 3.0);
+        let light_space_matrix = self.calculate_light_space_matrix_with_range(
+            world.lighting.global_light_direction,
+            camera_pos,
+            3.0,
+        );
         let render_settings = self.active_lighting_settings();
         let render_shadows =
             world.lighting.shadows_enabled && render_settings.shadow_method != ShadowMethod::Off;

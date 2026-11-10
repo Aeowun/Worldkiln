@@ -954,7 +954,6 @@ mod tests {
         assert!(browse_catalog("../private", "").starts_with("ERROR:"));
     }
 
-
     #[test]
     fn live_docs_content_is_plain_text_and_source_restricted() {
         let html = "<main><h1>Syntax</h1><p>Newlines &amp; blocks</p><script>LEAK_PRIVATE_DATA()</script><pre>const x = 1</pre></main>";

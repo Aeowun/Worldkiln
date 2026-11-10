@@ -433,16 +433,18 @@ mod tests {
         assert!(validate_project_import(&project_a, &plan).is_ok());
         let imported_file = project_a
             .join(".assets/media")
-            .join(plan.assets[0].import_subdir.as_deref().unwrap_or(Path::new("")))
+            .join(
+                plan.assets[0]
+                    .import_subdir
+                    .as_deref()
+                    .unwrap_or(Path::new("")),
+            )
             .join(plan.assets[0].incoming_name.as_deref().unwrap_or("pic.png"));
         fs::create_dir_all(imported_file.parent().unwrap()).unwrap();
         fs::write(&imported_file, b"owned").unwrap();
         let error = validate_project_import(&project_a, &plan).unwrap_err();
         assert!(error.contains("already exists"));
-        assert_eq!(
-            fs::read(&imported_file).unwrap(),
-            b"owned"
-        );
+        assert_eq!(fs::read(&imported_file).unwrap(), b"owned");
         assert!(!project_b.join(".assets").exists());
         fs::remove_dir_all(base).unwrap();
     }

@@ -69,7 +69,6 @@ mod tests {
         assert_eq!(a.current_state, AnimationState::Idle);
     }
 
-
     #[test]
     fn test_spawn_no_points_returns_none() {
         let world = World::new();
@@ -114,7 +113,6 @@ mod tests {
         assert_eq!(character.transform.position, Vec3::new(5.0, 5.0, 5.0));
     }
 
-
     #[test]
     fn test_spawn_blocked_searches_nearby() {
         let mut world = World::new();
@@ -127,7 +125,6 @@ mod tests {
             spawn_at_random_point(&world, 1, None).expect("Should find alternative spawn");
         assert_ne!(character.transform.position, Vec3::new(0.0, 1.0, 0.0));
     }
-
 
     #[test]
     fn test_gameplay_camera_follows_character() {

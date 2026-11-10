@@ -14,7 +14,7 @@ const TILES_PER_LAYER: usize = (TILES_PER_AXIS * TILES_PER_AXIS) as usize;
 const NEAR: f32 = 0.1;
 const ALL_FACES: u8 = (1 << FACES_PER_LIGHT) - 1;
 const MAX_SHADOW_FACES_PER_FRAME: usize = 3;
-const SHADOW_CPU_SUBMISSION_BUDGET: Duration = Duration::from_micros(3500);  // baseline is now 2500
+const SHADOW_CPU_SUBMISSION_BUDGET: Duration = Duration::from_micros(3500); // baseline is now 2500
 
 #[derive(Default)]
 pub(super) struct PointShadowCache {

@@ -95,7 +95,9 @@ pub trait EngineHost {
     fn game_command(&mut self, _name: &str) -> Result<(), String> {
         Err("game controls are unavailable in this runtime".into())
     }
-
+    fn network_script_context(&self) -> crate::scripting::network::NetworkScriptContext {
+        crate::scripting::network::NetworkScriptContext::default()
+    }
     fn tick_navigation_builds(&mut self) {}
     fn sky_material_id(&self) -> Option<String> {
         None

@@ -259,8 +259,7 @@ pub fn save_native_script(path: &Path, source: &str, new_draft: bool) -> Result<
         .parent()
         .and_then(Path::parent)
         .ok_or_else(|| Error::other("Missing native asset project root"))?;
-    super::asset_registry::AssetRegistry::reconcile(project)
-        .map_err(Error::other)?;
+    super::asset_registry::AssetRegistry::reconcile(project).map_err(Error::other)?;
     Ok(true)
 }
 

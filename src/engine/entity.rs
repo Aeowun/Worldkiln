@@ -290,6 +290,11 @@ impl Default for EntityAnimationState {
 }
 
 impl EntityAnimationState {
+    pub(crate) fn seek(&mut self, time: f32) {
+        self.time = time;
+        self.absolute_time = f64::from(time);
+    }
+
     fn from_definition(definition: &EntityAnimationDefinition) -> Self {
         let current_clip = definition
             .default_clip

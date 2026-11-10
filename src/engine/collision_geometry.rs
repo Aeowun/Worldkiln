@@ -202,9 +202,9 @@ pub fn envelope(instance: &ColliderInstance) -> Option<(Vec3, Vec3)> {
         static CACHE: std::cell::RefCell<std::collections::HashMap<CacheKey, CacheEntry>> =
             std::cell::RefCell::new(std::collections::HashMap::new());
     }
-    let expensive = instance.shapes.iter().any(|shape| {
-        matches!(shape, CollisionShape::Triangles { vertices } if vertices.len() >= 32)
-    });
+    let expensive = instance.shapes.iter().any(
+        |shape| matches!(shape, CollisionShape::Triangles { vertices } if vertices.len() >= 32),
+    );
     let key = CacheKey {
         geometry: Arc::as_ptr(&instance.shapes) as usize,
         rotation: instance.rotation.to_array().map(f32::to_bits),

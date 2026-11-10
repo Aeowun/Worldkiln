@@ -254,6 +254,4 @@ pub fn inspect(bytes: &[u8]) -> Result<(EffectCompatibility, EffectDocument), St
 #[cfg(test)]
 mod tests {
     use super::*;
-
-
 }

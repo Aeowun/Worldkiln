@@ -41,7 +41,7 @@ fn norm_path(path: &str) -> String {
 pub struct ScriptHostBridge<'a> {
     pub game_state:
         Option<std::sync::Arc<std::sync::Mutex<crate::scripting::api::GameLifecycleState>>>,
-
+    pub network_context: crate::scripting::network::NetworkScriptContext,
     pub entity_manager: &'a mut EntityManager,
     pub attachment_system: Option<&'a mut crate::engine::attachment::AttachmentSystem>,
     pub world: &'a mut World,
@@ -2533,12 +2533,16 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
             .game_state
             .as_ref()
             .ok_or("game lifecycle controls are unavailable in this runtime")?;
+        let multiplayer = self.network_context.role != crate::scripting::network::NetworkRole::Solo;
         let mut state = state
             .lock()
             .map_err(|_| "game lifecycle state is unavailable")?;
         match name {
             "quit" => state.requested = Some(GameLifecycleRequest::Quit),
             "restart" => state.requested = Some(GameLifecycleRequest::Restart),
+            "pause" | "resume" if multiplayer => {
+                eprintln!("[WARNING] game.{name} is unavailable during multiplayer; ignored");
+            }
             "pause" if !state.paused => {
                 state.paused = true;
                 state.pending_events.push("game_on_pause");
@@ -2552,7 +2556,9 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         }
         Ok(())
     }
-
+    fn network_script_context(&self) -> crate::scripting::network::NetworkScriptContext {
+        self.network_context.clone()
+    }
     fn tick_navigation_builds(&mut self) {
         if let Some(characters) = self.character_system.as_deref_mut()
             && characters.has_pending_navigation_work()
@@ -2944,6 +2950,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
     }
 
     fn request_game_restart(&mut self) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("game.restart", None)?;
         let state = self
             .save_state
             .as_deref_mut()
@@ -2953,6 +2961,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
     }
 
     fn save_reset(&mut self, key: Option<&str>) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("save.reset", None)?;
         self.save_state
             .as_deref_mut()
             .ok_or_else(|| "save state is unavailable because no project is active".to_string())?
@@ -2982,6 +2992,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         value: Value,
         default: Option<Value>,
     ) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("save.set", None)?;
         let convert = |value: Value| -> Result<crate::engine::save_state::SaveValue, String> {
             let value = match value {
                 Value::Number(value) => crate::engine::save_state::SaveValue::Number(value),
@@ -3013,6 +3025,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
     }
 
     fn save_remove(&mut self, key: &str) -> Result<bool, String> {
+        self.network_context
+            .authorize_shared_write("save.remove", None)?;
         self.save_state
             .as_deref_mut()
             .ok_or_else(|| "save state is unavailable because no project is active".to_string())?
@@ -3020,6 +3034,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
     }
 
     fn save_commit(&mut self) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("save.commit", None)?;
         self.save_state
             .as_deref_mut()
             .ok_or_else(|| "save state is unavailable because no project is active".to_string())?
@@ -3129,6 +3145,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         position: Vec3,
         character_package: Option<&str>,
     ) -> Result<u64, String> {
+        self.network_context
+            .authorize_shared_write("character.spawn", None)?;
         ScriptHostBridge::spawn_character(self, entity_name, position, character_package)
     }
 
@@ -3138,6 +3156,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         position: Vec3,
         package_name: Option<&str>,
     ) -> Result<u64, String> {
+        self.network_context
+            .authorize_shared_write("entity.spawn", None)?;
         ScriptHostBridge::spawn_entity(self, entity_name, position, package_name)
     }
 
@@ -3381,14 +3401,20 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
     }
 
     fn create_runtime_cell(&mut self, cell_type: &str) -> Result<(HandleKind, u64), String> {
+        self.network_context
+            .authorize_shared_write("cell.create", None)?;
         ScriptHostBridge::create_runtime_cell(self, cell_type)
     }
 
     fn move_runtime_cell(&mut self, id: u64, x: i32, y: i32, z: i32) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("cell.move", Some((HandleKind::Cell, id)))?;
         ScriptHostBridge::move_runtime_cell(self, id, x, y, z)
     }
 
     fn delete_cell(&mut self, id: u64) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("cell.delete", Some((HandleKind::Cell, id)))?;
         ScriptHostBridge::delete_cell(self, id)
     }
 
@@ -3440,6 +3466,22 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         name: &str,
         value: Value,
     ) -> Result<bool, String> {
+        if matches!(
+            kind,
+            HandleKind::EntityPhysics | HandleKind::EntityAnimation | HandleKind::EntityAppearance
+        ) && self.entity_manager.lookup_entity("Player") != Some(EntityId(id))
+        {
+            self.network_context
+                .authorize_shared_write(name, Some((kind, id)))?;
+        }
+        if matches!(
+            kind,
+            HandleKind::Cell | HandleKind::Actor | HandleKind::Entity
+        ) && !(kind == HandleKind::Actor && self.get_player_actor_id() == Some(id))
+        {
+            self.network_context
+                .authorize_shared_write("set_property", Some((kind, id)))?;
+        }
         ScriptHostBridge::set_property(self, kind, id, name, value)
     }
 
@@ -3450,6 +3492,42 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         name: &str,
         arguments: &[Value],
     ) -> Result<Option<Value>, String> {
+        if matches!(
+            kind,
+            HandleKind::EntityPhysics | HandleKind::EntityAnimation | HandleKind::EntityAppearance
+        ) && self.entity_manager.lookup_entity("Player") != Some(EntityId(id))
+            && !name.starts_with("get_")
+            && !name.starts_with("is_")
+        {
+            self.network_context
+                .authorize_shared_write(name, Some((kind, id)))?;
+        }
+        let mutating = [
+            "set_",
+            "add_",
+            "remove_",
+            "move_",
+            "apply_",
+            "spawn_",
+            "destroy",
+            "delete",
+            "attach",
+            "detach",
+            "rotate",
+            "translate",
+            "impulse",
+            "push",
+            "clear",
+        ];
+        if matches!(
+            kind,
+            HandleKind::Cell | HandleKind::Actor | HandleKind::Entity
+        ) && mutating.iter().any(|prefix| name.starts_with(prefix))
+            && !(kind == HandleKind::Actor && self.get_player_actor_id() == Some(id))
+        {
+            self.network_context
+                .authorize_shared_write(name, Some((kind, id)))?;
+        }
         ScriptHostBridge::call_method(self, kind, id, name, arguments)
     }
 
@@ -3510,10 +3588,14 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
     }
 
     fn set_attribute(&mut self, id: u64, key: String, value: Value) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("cell.set_attribute", Some((HandleKind::Cell, id)))?;
         ScriptHostBridge::set_attribute(self, id, key, value)
     }
 
     fn remove_attribute(&mut self, id: u64, key: &str) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("cell.remove_attribute", Some((HandleKind::Cell, id)))?;
         ScriptHostBridge::remove_attribute(self, id, key)
     }
 
@@ -3524,6 +3606,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         key: String,
         value: Value,
     ) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("set_attribute", Some((kind, id)))?;
         ScriptHostBridge::set_handle_attribute(self, kind, id, key, value)
     }
 
@@ -3533,6 +3617,8 @@ impl<'a> EngineHost for ScriptHostBridge<'a> {
         id: u64,
         key: &str,
     ) -> Result<(), String> {
+        self.network_context
+            .authorize_shared_write("remove_attribute", Some((kind, id)))?;
         ScriptHostBridge::remove_handle_attribute(self, kind, id, key)
     }
 
@@ -4148,6 +4234,7 @@ mod tests {
     ) -> ScriptHostBridge<'a> {
         ScriptHostBridge {
             game_state: None,
+            network_context: Default::default(),
             entity_manager,
             attachment_system: None,
             world,

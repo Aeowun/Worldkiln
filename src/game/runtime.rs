@@ -42,7 +42,10 @@ fn report_standalone_error(message: &str) {
                 .duration_since(std::time::UNIX_EPOCH)
                 .map(|time| time.as_secs())
                 .unwrap_or(0);
-            let _ = std::io::Write::write_all(&mut file, format!("[{timestamp}] {message}\n").as_bytes());
+            let _ = std::io::Write::write_all(
+                &mut file,
+                format!("[{timestamp}] {message}\n").as_bytes(),
+            );
         }
     }
 }
@@ -64,6 +67,11 @@ pub struct GameRuntime {
     pub gameplay_camera: GameplayCamera,
 
     pub script_scene: Option<ScriptScene>,
+    pub(crate) multiplayer: Option<crate::network::play_session::MultiplayerTestSession>,
+    pub(crate) invite_task:
+        Option<std::sync::mpsc::Receiver<Result<crate::network::invite::PreparedInvite, String>>>,
+    pub(crate) invite_bridge: Option<crate::network::invite::InviteBridge>,
+    pub script_network: crate::scripting::network::NetworkScriptContext,
     pub entity_manager: EntityManager,
     pub runtime_ui: RuntimeUi,
 
@@ -120,6 +128,13 @@ impl GameRuntime {
             gameplay_camera: GameplayCamera::new(),
 
             script_scene: None,
+            multiplayer: None,
+            invite_task: None,
+            invite_bridge: None,
+            script_network: crate::scripting::network::NetworkScriptContext {
+                io: Some(Default::default()),
+                ..Default::default()
+            },
             entity_manager: EntityManager::new(),
             runtime_ui: RuntimeUi::new(),
 
@@ -155,13 +170,14 @@ impl GameRuntime {
         self.renderer.set_project_asset_root(Some(&project_path));
 
         self.project_path = Some(project_path.clone());
-        self.project_hierarchy = match crate::project::metadata::load_project_metadata(&project_path) {
-            Ok(hierarchy) => hierarchy,
-            Err(error) => {
-                eprintln!("[ERROR] Failed to load authored project hierarchy: {error}");
-                crate::project::ProjectHierarchy::new()
-            }
-        };
+        self.project_hierarchy =
+            match crate::project::metadata::load_project_metadata(&project_path) {
+                Ok(hierarchy) => hierarchy,
+                Err(error) => {
+                    eprintln!("[ERROR] Failed to load authored project hierarchy: {error}");
+                    crate::project::ProjectHierarchy::new()
+                }
+            };
 
         self.save_state = match self.platform_services.load_save_state(&project_path) {
             Ok(state) => Some(state),
@@ -358,6 +374,7 @@ impl GameRuntime {
         if let Some(scene) = &mut self.script_scene {
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: self.script_network.clone(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,
@@ -431,7 +448,9 @@ impl GameRuntime {
                         .map(|d| d.key.as_str())
                         .unwrap_or("main_ui"),
                 ) {
-                    report_standalone_error(&format!("[ERROR] Failed to load authored UI: {error}"));
+                    report_standalone_error(&format!(
+                        "[ERROR] Failed to load authored UI: {error}"
+                    ));
                 }
             }
 
@@ -463,6 +482,7 @@ impl GameRuntime {
                 let has_player = self.character_system.get_active_player().is_some();
                 let mut bridge = ScriptHostBridge {
                     game_state: Some(self.game_state.clone()),
+                    network_context: self.script_network.clone(),
                     entity_manager: &mut self.entity_manager,
                     attachment_system: Some(&mut self.attachment_system),
                     world: &mut self.world,
@@ -554,6 +574,7 @@ impl GameRuntime {
         if let Some(mut scene) = scene_opt {
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: self.script_network.clone(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,
@@ -676,6 +697,7 @@ impl GameRuntime {
             }
             if game.paused { 0.0 } else { frame_time }
         };
+        self.update_network(frame_time);
         self.world.update_particles(frame_time);
         let key_state = self.keys_down.clone();
 
@@ -684,6 +706,7 @@ impl GameRuntime {
         if let Some(scene) = self.script_scene.as_mut() {
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: self.script_network.clone(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,
@@ -766,7 +789,10 @@ impl GameRuntime {
         }
 
         for ((material, layer), alpha) in std::mem::take(&mut self.world.runtime_material_changes) {
-            if let Err(error) = self.renderer.set_runtime_material_layer_alpha(&material, &layer, alpha) {
+            if let Err(error) = self
+                .renderer
+                .set_runtime_material_layer_alpha(&material, &layer, alpha)
+            {
                 eprintln!("[ERROR] AeoScript Material: {error}");
             }
         }
@@ -845,6 +871,7 @@ impl GameRuntime {
         self.orbit_delta = [0.0, 0.0];
 
         let proj_path = self.project_path.as_deref();
+        let script_network = self.script_network.clone();
         character_system.set_ocean_appearance(self.renderer.ocean_swim_appearance(world));
 
         self.physics_clock.update(frame_time, |dt| {
@@ -852,6 +879,7 @@ impl GameRuntime {
                 if let (Some(scene), Some(controller)) = (scene_opt.as_mut(), controller_opt) {
                     let mut bridge = ScriptHostBridge {
                         game_state: Some(self.game_state.clone()),
+                        network_context: script_network.clone(),
                         entity_manager,
                         attachment_system: Some(attachment_system),
                         world,
@@ -907,7 +935,11 @@ impl GameRuntime {
                     let flow = world.water_current_at(entity.position);
                     if flow.length_squared() > 0.000001 {
                         let relative = flow
-                            - glam::Vec3::new(entity.physics.velocity.x, 0.0, entity.physics.velocity.z);
+                            - glam::Vec3::new(
+                                entity.physics.velocity.x,
+                                0.0,
+                                entity.physics.velocity.z,
+                            );
                         entity.physics.accumulated_force += relative * entity.physics.mass * 2.0;
                     }
                 }
@@ -983,17 +1015,17 @@ impl GameRuntime {
                 }
             }
 
-            let entity_contacts = p_world
-                .process_entity_contacts_and_collisions_with_world(
-                    entity_manager,
-                    Some(character_system),
-                    world,
-                );
+            let entity_contacts = p_world.process_entity_contacts_and_collisions_with_world(
+                entity_manager,
+                Some(character_system),
+                world,
+            );
             let player_contact_entity = entity_manager.lookup_entity("Player");
 
             if let Some(scene) = scene_opt.as_mut() {
                 let mut bridge = ScriptHostBridge {
                     game_state: Some(self.game_state.clone()),
+                    network_context: script_network.clone(),
                     entity_manager,
                     attachment_system: Some(attachment_system),
                     world,
@@ -1059,6 +1091,7 @@ impl GameRuntime {
                 let has_player = character_system.get_active_player().is_some();
                 let mut bridge = ScriptHostBridge {
                     game_state: Some(self.game_state.clone()),
+                    network_context: script_network.clone(),
                     entity_manager,
                     attachment_system: Some(attachment_system),
                     world,
@@ -1146,6 +1179,7 @@ impl GameRuntime {
         if let Some(scene) = &mut self.script_scene {
             let mut bridge = ScriptHostBridge {
                 game_state: Some(self.game_state.clone()),
+                network_context: self.script_network.clone(),
                 entity_manager: &mut self.entity_manager,
                 attachment_system: Some(&mut self.attachment_system),
                 world: &mut self.world,
@@ -1196,7 +1230,9 @@ impl GameRuntime {
                 if let Err(error) =
                     scene.on_character_contact(&touch_contacts_this_frame, &mut context)
                 {
-                    report_standalone_error(&format!("[ERROR] Scripting contact event error: {error}"));
+                    report_standalone_error(&format!(
+                        "[ERROR] Scripting contact event error: {error}"
+                    ));
                 }
             }
         }

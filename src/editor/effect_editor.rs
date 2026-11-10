@@ -824,7 +824,6 @@ fn create_file(path: &Path, bytes: &[u8]) -> Result<(), String> {
 mod tests {
     use super::*;
 
-
     #[test]
     fn creates_immediate_effect_reopens_and_saves_without_overwrite() {
         let project = std::env::temp_dir().join(format!(

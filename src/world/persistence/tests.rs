@@ -568,11 +568,17 @@ fn legacy_v1_heightfield_storage_loads_without_voxel_migration() {
     assert!(loaded.terrain.authored.is_none());
     assert_eq!(loaded.terrain.config.generation_layers.len(), 1);
     assert_eq!(
-        loaded.terrain.config.generation_layers[0].heightmap.as_ref(),
+        loaded.terrain.config.generation_layers[0]
+            .heightmap
+            .as_ref(),
         Some(expected_heightfield)
     );
     assert!(matches!(
-        loaded.terrain.layered_authored.as_ref().map(|result| &result.data),
+        loaded
+            .terrain
+            .layered_authored
+            .as_ref()
+            .map(|result| &result.data),
         Some(TerrainData::Heightfield(_))
     ));
 

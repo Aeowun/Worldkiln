@@ -23,6 +23,20 @@ use winit::window::{Fullscreen, WindowAttributes};
 
 use crate::game::GameRuntime;
 
+pub fn should_forward_gameplay_input(event: &WindowEvent, ui_consumed: bool) -> bool {
+    !ui_consumed
+        || matches!(event, WindowEvent::Focused(false))
+        || matches!(
+            event,
+            WindowEvent::KeyboardInput { event: key, .. }
+                if key.state == ElementState::Released
+        )
+        || matches!(
+            event,
+            WindowEvent::MouseInput { state: ElementState::Released, .. }
+        )
+}
+
 pub fn translate_window_event(
     event: &WindowEvent,
     keyboard_owned: bool,
@@ -62,25 +76,37 @@ pub fn translate_window_event(
     }
 }
 
-pub fn should_forward_gameplay_input(event: &WindowEvent, ui_consumed: bool) -> bool {
-    !ui_consumed
-        || matches!(event, WindowEvent::Focused(false))
-        || matches!(
-            event,
-            WindowEvent::KeyboardInput { event: key, .. }
-                if key.state == ElementState::Released
-        )
-        || matches!(
-            event,
-            WindowEvent::MouseInput { state: ElementState::Released, .. }
-        )
-}
-
 pub fn run_game(
     project_path: PathBuf,
     title: String,
     profile: Option<crate::engine::game_package::GameExportProfile>,
 ) {
+    run_game_with_multiplayer(project_path, title, profile, None);
+}
+
+pub fn run_game_with_multiplayer(
+    project_path: PathBuf,
+    title: String,
+    profile: Option<crate::engine::game_package::GameExportProfile>,
+    network: Option<(
+        crate::network::play_session::NetworkTestRole,
+        std::net::SocketAddr,
+    )>,
+) {
+    run_desktop(project_path, title, profile, network, network.is_some());
+}
+
+pub fn run_desktop(
+    project_path: PathBuf,
+    title: String,
+    profile: Option<crate::engine::game_package::GameExportProfile>,
+    network: Option<(
+        crate::network::play_session::NetworkTestRole,
+        std::net::SocketAddr,
+    )>,
+    windowed: bool,
+) {
+    let network_enabled = windowed;
     let event_loop = EventLoop::new().expect("Failed to create game event loop");
 
     let development = profile
@@ -117,25 +143,56 @@ pub fn run_game(
         .as_ref()
         .map(|p| p.window_mode.as_str())
         .unwrap_or("borderless_fullscreen");
+    let multiplayer_window = if network_enabled {
+        std::env::var("WORLDKILN_MULTIPLAYER_WINDOW")
+            .ok()
+            .and_then(|value| {
+                let (slot, total) = value.split_once('/')?;
+                let slot = slot.parse::<usize>().ok()?;
+                let total = total.parse::<usize>().ok()?;
+                (total >= 2 && total <= 8 && slot < total).then_some((slot, total))
+            })
+    } else {
+        None
+    };
     let window_attributes = WindowAttributes::default()
         .with_title(title)
-        .with_fullscreen(
-            if profile
-                .as_ref()
-                .is_some_and(|p| p.window_mode == "windowed")
-            {
-                None
-            } else {
-                Some(Fullscreen::Borderless(None))
-            },
-        )
+        .with_fullscreen(if network_enabled {
+            None
+        } else if profile
+            .as_ref()
+            .is_some_and(|p| p.window_mode == "windowed")
+        {
+            None
+        } else {
+            Some(Fullscreen::Borderless(None))
+        })
         .with_inner_size({
-            let resolution = profile
-                .as_ref()
-                .and_then(|p| p.resolution)
-                .unwrap_or([1280, 720]);
-            winit::dpi::PhysicalSize::new(resolution[0], resolution[1])
+            if let Some((_, total)) = multiplayer_window {
+                if total <= 4 {
+                    winit::dpi::PhysicalSize::new(880, 490)
+                } else {
+                    winit::dpi::PhysicalSize::new(440, 440)
+                }
+            } else {
+                let resolution = profile
+                    .as_ref()
+                    .and_then(|p| p.resolution)
+                    .unwrap_or([1280, 720]);
+                winit::dpi::PhysicalSize::new(resolution[0], resolution[1])
+            }
         });
+    let window_attributes = if let Some((slot, total)) = multiplayer_window {
+        let columns = if total <= 4 { 2 } else { 4 };
+        let width = if total <= 4 { 900 } else { 460 };
+        let height = if total <= 4 { 520 } else { 470 };
+        window_attributes.with_position(winit::dpi::PhysicalPosition::new(
+            24 + (slot % columns) as i32 * width,
+            48 + (slot / columns) as i32 * height,
+        ))
+    } else {
+        window_attributes
+    };
 
     let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes));
 
@@ -148,7 +205,7 @@ pub fn run_game(
         .expect("Failed to create OpenGL display");
 
     let window = window.expect("Failed to create game window");
-    if mode == "fullscreen" {
+    if mode == "fullscreen" && !network_enabled {
         let requested = profile
             .as_ref()
             .and_then(|p| p.resolution)
@@ -206,6 +263,14 @@ pub fn run_game(
         size.height as f32,
         Box::new(super::DesktopRuntimeServices),
     );
+    if let Some((role, address)) = network {
+        game_runtime
+            .start_session(role, address)
+            .expect("Failed to start network session");
+        if let Some(session) = game_runtime.multiplayer.as_mut() {
+            session.test_controls = true;
+        }
+    }
     game_runtime.load_project(project_path);
 
     let splash_started = Instant::now();
@@ -307,7 +372,9 @@ pub fn run_game(
 
                 let splash_active = splash_started.elapsed().as_secs_f32() < 7.0;
 
-                if !splash_active {
+                if splash_active {
+                    game_runtime.update_network(0.0);
+                } else {
                     game_runtime.update(dt);
                     match game_runtime.take_game_action() {
                         Some(crate::scripting::api::GameLifecycleRequest::Quit) => {
@@ -323,7 +390,6 @@ pub fn run_game(
                         }
                         None => {}
                     }
-
                 }
 
                 if let Err(error) = window_mouse.apply(&window, game_runtime.mouse.mode()) {

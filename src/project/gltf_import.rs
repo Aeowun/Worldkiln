@@ -2831,14 +2831,12 @@ mod khr_materials_unlit_tests {
 #[cfg(test)]
 mod step_animation_external_tests {
     use super::*;
-
 }
 
 #[cfg(test)]
 mod external_animated_character_fixture_tests {
     use super::*;
     use std::sync::Arc;
-
 }
 
 #[cfg(test)]
@@ -2883,5 +2881,4 @@ mod wk_asset_002_glb_collision_tests {
 #[cfg(test)]
 mod nonindexed_triangle_ship_contract {
     use super::*;
-
 }

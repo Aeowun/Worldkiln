@@ -523,7 +523,6 @@ mod tests {
     use super::*;
     use glam::Vec3;
 
-
     #[test]
     fn mount_solves_named_points_and_restores_child_physics_on_detach() {
         let mut entities = EntityManager::new();
@@ -572,7 +571,6 @@ mod tests {
         assert!(attachments.detach(child, &mut entities, &mut characters));
         assert_eq!(entities.get_physics(child).unwrap(), &child_physics_before);
     }
-
 
     fn assert_transforms_near(left: Mat4, right: Mat4) {
         for (a, b) in left.to_cols_array().iter().zip(right.to_cols_array()) {

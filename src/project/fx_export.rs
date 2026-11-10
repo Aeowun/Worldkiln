@@ -367,13 +367,7 @@ mod tests {
         include_bytes!("../../assets/effekseer/fire.efkefc")
     }
 
-
-
-
-
-
     #[cfg(windows)]
-
     #[test]
     fn editor_tree_rewrites_metadata_without_touching_runtime_or_resources() {
         let source = EfkEfc::parse(official_fire()).unwrap();
@@ -432,9 +426,7 @@ mod tests {
         );
     }
 
-
     #[cfg(windows)]
-
     #[test]
     fn several_creator_sprite_layers_are_bounded_and_roundtrip() {
         let source = EfkEfc::parse(official_fire()).unwrap();

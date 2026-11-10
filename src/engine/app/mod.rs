@@ -11,6 +11,7 @@ pub mod app_ui;
 mod background_project;
 mod character_picker;
 mod live_project_sync;
+mod multiplayer_test;
 mod new_project_character;
 mod pack_install_queue;
 mod recovery;
@@ -114,6 +115,7 @@ pub struct App {
     pub physics_clock: physics::PhysicsClock,
     pub physics_world: physics::PhysicsWorld,
     pub last_mode: EditorMode,
+    pub(crate) telemetry_first_run_selection: crate::engine::telemetry::Tier,
 
     pub play_mode_hint_started: Option<Instant>,
 
@@ -211,6 +213,8 @@ pub struct App {
     pub(crate) recovery_last: Instant,
     pub(crate) recovery_job: Option<std::sync::mpsc::Receiver<Result<(), String>>>,
     pub(crate) packaging_open: bool,
+    multiplayer_session: Option<multiplayer_test::MultiplayerSession>,
+    multiplayer_pending: Option<multiplayer_test::PendingMultiplayerLaunch>,
     game_state: std::sync::Arc<std::sync::Mutex<crate::scripting::api::GameLifecycleState>>,
     pub(crate) packaging_options: crate::engine::build::GameBuildOptions,
     pub(crate) packaging_run_after: bool,
@@ -411,6 +415,7 @@ impl App {
             physics_world: physics::PhysicsWorld::new(),
 
             last_mode: EditorMode::default(),
+            telemetry_first_run_selection: crate::engine::telemetry::Tier::Full,
             play_mode_hint_started: None,
 
             show_new_project_dialog: false,
@@ -492,13 +497,14 @@ impl App {
             last_autosave_interval: crate::engine::preferences::AutosaveInterval::Off,
             last_autosave_failure: None,
             packaging_open: false,
+            multiplayer_session: None,
+            multiplayer_pending: None,
             game_state: std::sync::Arc::new(std::sync::Mutex::new(
                 crate::scripting::api::GameLifecycleState {
                     is_editor: true,
                     ..Default::default()
                 },
             )),
-
             packaging_options: Default::default(),
             packaging_run_after: false,
             packaging_status: "Idle ? ready to package".into(),
@@ -820,7 +826,6 @@ impl App {
                     frame_time
                 };
                 self.update_gameplay(delta);
-
                 if capture {
                     let (samples, dropped) = crate::engine::development_capture::finish();
                     self.development_capture
@@ -1081,6 +1086,10 @@ impl App {
 
     pub(crate) fn handle_mode_transition(&mut self) {
         if self.last_mode != self.editor.mode {
+            crate::engine::telemetry::record(match self.editor.mode {
+                EditorMode::Play => crate::engine::telemetry::EventKind::PlayStarted,
+                EditorMode::Editor => crate::engine::telemetry::EventKind::PlayStopped,
+            });
             self.editor
                 .post_process_runtime_preview
                 .borrow_mut()

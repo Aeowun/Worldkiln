@@ -222,10 +222,7 @@ mod tests {
         let mut volume = NavMeshBoundsVolume::new(9, [1.5, 1.5, 0.5]);
         volume.size = [3.0, 3.0, 1.0];
         world.navmesh_volumes.push(volume);
-        assert!(
-            prepared_test_path(&mut system, id, &world, Vec3::new(2.5, 1.0, 0.5))
-                .is_ok()
-        );
+        assert!(prepared_test_path(&mut system, id, &world, Vec3::new(2.5, 1.0, 0.5)).is_ok());
         assert_eq!(
             prepared_test_path(&mut system, id, &world, Vec3::new(5.5, 1.0, 0.5)),
             Err(NavigationPathQueryError::Path(PathFailure::InvalidTarget {
@@ -250,10 +247,7 @@ mod tests {
 
         world.navmesh_settings.global_navigation = true;
         world.bump_render_revision();
-        assert!(
-            prepared_test_path(&mut system, id, &world, Vec3::new(5.5, 1.0, 0.5))
-                .is_ok()
-        );
+        assert!(prepared_test_path(&mut system, id, &world, Vec3::new(5.5, 1.0, 0.5)).is_ok());
     }
 
     #[test]
@@ -269,8 +263,8 @@ mod tests {
         let character_id = system.spawn_character(Vec3::new(0.5, 1.0, 0.5), None);
         system.associate_entity(entity_id, character_id);
 
-        let path = prepared_test_path(&mut system, entity_id, &world, Vec3::new(2.5, 1.0, 0.5))
-            .unwrap();
+        let path =
+            prepared_test_path(&mut system, entity_id, &world, Vec3::new(2.5, 1.0, 0.5)).unwrap();
         assert_eq!(path.last(), Some(&Vec3::new(2.5, 1.0, 0.5)));
         assert_eq!(
             system
@@ -285,8 +279,7 @@ mod tests {
         world.set_cell(WorldCoord::new(2, 1, 0), CellType::Block);
         world.set_cell(WorldCoord::new(2, 2, 0), CellType::Block);
         assert!(
-            prepared_test_path(&mut system, entity_id, &world, Vec3::new(2.5, 1.0, 0.5))
-                .is_err()
+            prepared_test_path(&mut system, entity_id, &world, Vec3::new(2.5, 1.0, 0.5)).is_err()
         );
         assert_eq!(
             system
@@ -332,8 +325,7 @@ mod tests {
         world.terrain.config.plains.water_level = 8.0;
         assert_ne!(world.navigation_revision(), previous_nav_revision);
         assert!(
-            prepared_test_path(&mut system, entity_id, &world, Vec3::new(9.5, 4.0, 9.5))
-                .is_err(),
+            prepared_test_path(&mut system, entity_id, &world, Vec3::new(9.5, 4.0, 9.5)).is_err(),
             "raising water must invalidate cached walkable terrain even without a voxel change"
         );
     }
@@ -357,13 +349,14 @@ mod tests {
             .unwrap_err();
         assert_eq!(blocked.reason_code(), "target_blocked");
 
-        let invalid = prepared_test_path(&mut system, entity_id, &world, Vec3::new(99.5, 1.0, 99.5))
-            .unwrap_err();
+        let invalid =
+            prepared_test_path(&mut system, entity_id, &world, Vec3::new(99.5, 1.0, 99.5))
+                .unwrap_err();
         assert_eq!(invalid.reason_code(), "invalid_target");
 
         let empty_world = World::new();
-        let unavailable = prepared_test_path(&mut system, entity_id, &empty_world, Vec3::ZERO)
-            .unwrap_err();
+        let unavailable =
+            prepared_test_path(&mut system, entity_id, &empty_world, Vec3::ZERO).unwrap_err();
         assert_eq!(unavailable.reason_code(), "navigation_unavailable");
     }
 }
@@ -391,10 +384,7 @@ mod polygon_cache_tests {
                 .radius = radius;
         }
         for id in [EntityId(701), EntityId(702)] {
-            assert!(
-                prepared_test_path(&mut system, id, &world, Vec3::new(8.5, 1.0, 8.5))
-                    .is_ok()
-            );
+            assert!(prepared_test_path(&mut system, id, &world, Vec3::new(8.5, 1.0, 8.5)).is_ok());
         }
         let builds = system
             .navigation_cache
@@ -409,8 +399,7 @@ mod polygon_cache_tests {
         for _ in 0..10 {
             for id in [EntityId(701), EntityId(702)] {
                 assert!(
-                    prepared_test_path(&mut system, id, &world, Vec3::new(8.5, 1.0, 8.5))
-                        .is_ok()
+                    prepared_test_path(&mut system, id, &world, Vec3::new(8.5, 1.0, 8.5)).is_ok()
                 );
             }
         }

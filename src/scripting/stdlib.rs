@@ -371,6 +371,25 @@ pub fn resolve_stdlib_property(
     if object_name == "game" {
         return Ok(host.engine.game_property(property_name));
     }
+    if object_name == "network" {
+        let context = host.engine.network_script_context();
+        return Ok(match property_name {
+            "role" => Some(Value::String(context.role.as_str().to_owned())),
+            "player_id" => Some(
+                context
+                    .player_id
+                    .map_or(Value::Nil, |id| Value::Number(id as f64)),
+            ),
+            "connected" => Some(Value::Bool(context.connected)),
+            "available" => Some(Value::Bool(context.io.is_some())),
+            "is_server" => Some(Value::Bool(context.is_server())),
+            "is_client" => Some(Value::Bool(matches!(
+                context.role,
+                crate::scripting::network::NetworkRole::Client
+            ))),
+            _ => None,
+        });
+    }
     if object_name == "proj" && property_name == "sky" {
         return Ok(Some(Value::Namespace("world-sky".into())));
     }
@@ -430,6 +449,32 @@ pub fn call_stdlib_function(
     };
 
     match object_name {
+        "clipboard" => match method_name {
+            "write" => {
+                let [value] = args else {
+                    return Err("clipboard.write requires one string".into());
+                };
+                let text = value.as_string()?;
+                let mut clipboard =
+                    arboard::Clipboard::new().map_err(|e| format!("Clipboard unavailable: {e}"))?;
+                clipboard
+                    .set_text(text.to_owned())
+                    .map_err(|e| format!("Cannot copy text: {e}"))?;
+                Ok(Some(Value::Bool(true)))
+            }
+            "read" => {
+                if !args.is_empty() {
+                    return Err("clipboard.read expects no arguments".into());
+                }
+                let mut clipboard =
+                    arboard::Clipboard::new().map_err(|e| format!("Clipboard unavailable: {e}"))?;
+                let text = clipboard
+                    .get_text()
+                    .map_err(|e| format!("Cannot paste text: {e}"))?;
+                Ok(Some(Value::String(text)))
+            }
+            _ => Err(format!("unknown clipboard method {method_name}")),
+        },
         "game" => {
             if !args.is_empty() {
                 return Err(format!("game.{method_name} expects no arguments"));
@@ -442,7 +487,41 @@ pub fn call_stdlib_function(
                 _ => Err(format!("unknown function 'game.{method_name}'")),
             }
         }
-
+        "network" => match method_name {
+            "require_server" => {
+                if !args.is_empty() {
+                    return Err("network.require_server expects no arguments".into());
+                }
+                _host
+                    .engine
+                    .network_script_context()
+                    .authorize_shared_write("require_server", None)?;
+                Ok(Some(Value::Bool(true)))
+            }
+            "is_local_player" => {
+                if args.len() != 1 {
+                    return Err("network.is_local_player expects a player ID".into());
+                }
+                let id = args[0].as_number()?;
+                if !id.is_finite() || id.fract() != 0.0 || !(1.0..=9007199254740991.0).contains(&id)
+                {
+                    return Err(
+                        "network.is_local_player expects an exact positive player ID".into(),
+                    );
+                }
+                Ok(Some(Value::Bool(
+                    _host
+                        .engine
+                        .network_script_context()
+                        .is_local_player(id as u64),
+                )))
+            }
+            _ => _host
+                .engine
+                .network_script_context()
+                .call(method_name, args)
+                .map(Some),
+        },
         "postprocess" => match method_name {
             "passes" => {
                 if !args.is_empty() {

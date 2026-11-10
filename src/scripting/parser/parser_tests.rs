@@ -728,5 +728,4 @@ fn find(): ui.Panel? {
         assert!(error.message.contains("Found '{'"));
         assert_eq!(error.line, 1);
     }
-
 }

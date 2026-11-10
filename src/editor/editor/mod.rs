@@ -22,6 +22,7 @@ mod character_attachments_ui;
 pub(crate) mod diagnostics_workspace;
 pub mod feature_nav;
 pub mod inspector;
+pub(crate) mod multiplayer_ui;
 pub mod panel_cache;
 pub mod panels;
 mod post_process_ui;
@@ -110,10 +111,11 @@ pub enum SettingsPage {
     Input,
     Ai,
     Development,
+    Privacy,
 }
 
 impl SettingsPage {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Lighting,
         Self::Editor,
         Self::Theme,
@@ -121,6 +123,7 @@ impl SettingsPage {
         Self::Input,
         Self::Ai,
         Self::Development,
+        Self::Privacy,
     ];
 
     pub const fn label(self) -> &'static str {
@@ -132,6 +135,7 @@ impl SettingsPage {
             Self::Input => "INPUT",
             Self::Ai => "AI",
             Self::Development => "DEVELOPMENT [BETA]",
+            Self::Privacy => "PRIVACY",
         }
     }
 }
@@ -894,6 +898,7 @@ pub struct Editor {
     pub needs_clear_world: bool,
     pub needs_save: bool,
     pub save_requested: bool,
+    pub(crate) multiplayer_ui: multiplayer_ui::MultiplayerUi,
     pub(crate) post_process_dirty: std::cell::Cell<bool>,
     pub(crate) post_process_runtime_preview:
         std::cell::RefCell<crate::project::post_process_pipeline::PostProcessRuntime>,
@@ -1161,6 +1166,7 @@ impl Editor {
             needs_clear_world: false,
             needs_save: false,
             save_requested: false,
+            multiplayer_ui: multiplayer_ui::MultiplayerUi::default(),
             post_process_dirty: std::cell::Cell::new(false),
             post_process_runtime_preview: std::cell::RefCell::new(Default::default()),
             post_process_runtime_commands: std::cell::RefCell::new(Vec::new()),

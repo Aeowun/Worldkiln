@@ -555,7 +555,8 @@ fn package_game_with_template_inner(
             engine_archive.as_ref().map(|(path, _, _)| path.as_path()),
         )?;
         if let Some((path, _, _)) = &engine_archive {
-            fs::remove_file(path).map_err(|error| format!("Cannot clean engine runtime staging: {error}"))?;
+            fs::remove_file(path)
+                .map_err(|error| format!("Cannot clean engine runtime staging: {error}"))?;
         }
         check_cancel(cancel)?;
         fs::remove_dir_all(&snapshot)
@@ -581,7 +582,8 @@ fn package_game_with_template_inner(
         };
         let staged_executable = staging.join(&executable_name);
 
-        let executable_template_sha256 = crate::engine::game_package::sha256_file(executable_template)?.0;
+        let executable_template_sha256 =
+            crate::engine::game_package::sha256_file(executable_template)?.0;
         let manifest = EmbeddedGameManifest {
             format_version: 1,
             game_id: game_id.clone(),
@@ -592,11 +594,23 @@ fn package_game_with_template_inner(
             },
             engine_version: version.to_string(),
             payload_sha256,
-            runtime_release_tag: if bundle_runtime { String::new() } else { runtime_asset.release_tag.clone() },
+            runtime_release_tag: if bundle_runtime {
+                String::new()
+            } else {
+                runtime_asset.release_tag.clone()
+            },
             runtime_asset_name: runtime_asset.asset_name.clone(),
-            runtime_asset_url: if bundle_runtime { String::new() } else { runtime_asset.browser_download_url.clone() },
-            runtime_asset_sha256: engine_archive.as_ref().map_or_else(|| runtime_asset.sha256.clone(), |(_, sha, _)| sha.clone()),
-            runtime_asset_size: engine_archive.as_ref().map_or(runtime_asset.size, |(_, _, size)| *size),
+            runtime_asset_url: if bundle_runtime {
+                String::new()
+            } else {
+                runtime_asset.browser_download_url.clone()
+            },
+            runtime_asset_sha256: engine_archive
+                .as_ref()
+                .map_or_else(|| runtime_asset.sha256.clone(), |(_, sha, _)| sha.clone()),
+            runtime_asset_size: engine_archive
+                .as_ref()
+                .map_or(runtime_asset.size, |(_, _, size)| *size),
             export_profile: Some(GameExportProfile {
                 display_title: if settings.title.trim().is_empty() {
                     project_name.clone()

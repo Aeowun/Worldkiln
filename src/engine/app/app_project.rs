@@ -59,6 +59,7 @@ impl App {
             return;
         }
 
+        self.multiplayer_session = None;
         self.stop_scripting();
         self.last_mode = EditorMode::Editor;
 
@@ -551,6 +552,7 @@ impl App {
             self.editor.terminal_auto_scroll = true;
 
             self.play_engine_sound(EngineSound::BuildFailed);
+            crate::engine::telemetry::record(crate::engine::telemetry::EventKind::BuildFailed);
 
             return;
         };
@@ -562,6 +564,7 @@ impl App {
             ));
             self.editor.terminal_auto_scroll = true;
             self.play_engine_sound(EngineSound::BuildFailed);
+            crate::engine::telemetry::record(crate::engine::telemetry::EventKind::BuildFailed);
             return;
         }
 
@@ -572,6 +575,7 @@ impl App {
             ));
             self.editor.terminal_auto_scroll = true;
             self.play_engine_sound(EngineSound::BuildFailed);
+            crate::engine::telemetry::record(crate::engine::telemetry::EventKind::BuildFailed);
             return;
         }
 
@@ -596,6 +600,7 @@ BUILD STARTED\n\
             .append_output("----------------------------------------\n");
 
         self.play_engine_sound(EngineSound::BuildStarted);
+        crate::engine::telemetry::record(crate::engine::telemetry::EventKind::BuildStarted);
 
         let (sender, receiver) = std::sync::mpsc::channel();
         self.game_build_job = Some(receiver);
@@ -657,6 +662,7 @@ BUILD STARTED\n\
                 ));
 
                 self.play_engine_sound(EngineSound::BuildFailed);
+            crate::engine::telemetry::record(crate::engine::telemetry::EventKind::BuildFailed);
             }
         }
 

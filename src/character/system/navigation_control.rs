@@ -473,7 +473,8 @@ mod tests {
         let mut physics = PhysicsWorld::new();
         physics.register_from_world(&world);
         {
-            let _geometry = crate::navigation::runtime_collision_context(&world, &entities, &system);
+            let _geometry =
+                crate::navigation::runtime_collision_context(&world, &entities, &system);
             system
                 .begin_entity_navigation(entity_id, &world, Vec3::new(7.5, 1.0, 1.5), 3.0, 0.05)
                 .unwrap();
@@ -497,7 +498,11 @@ mod tests {
             }
             std::thread::sleep(std::time::Duration::from_millis(1));
         }
-        let position = system.get_character_for_entity(entity_id).unwrap().transform.position;
+        let position = system
+            .get_character_for_entity(entity_id)
+            .unwrap()
+            .transform
+            .position;
         assert!(
             (position.x - 7.5).abs() < 0.15,
             "navigation did not reach its target: {position:?}"

@@ -16,6 +16,7 @@ pub mod fx_export;
 pub mod fx_import;
 pub mod fx_standalone;
 pub mod gltf_import;
+pub mod fbx_import;
 pub mod hierarchy;
 pub mod index;
 pub mod material;
@@ -31,6 +32,7 @@ pub mod sky_material;
 pub mod texture_material;
 
 pub use hierarchy::{ProjectHierarchy, ProjectNode, ProjectNodeId, ProjectNodeKind};
+pub use fbx_import::{FbxInspection, import_fbx, import_fbx_folder, inspect_fbx};
 
 pub use gltf_import::{
     CharacterGlbImportResult, GlbAssetKind, GlbAssetSummary, GlbFolderImportResult,
